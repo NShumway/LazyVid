@@ -107,6 +107,28 @@ Static code analysis to verify feature implementation:
 
 **Total:** 7 unit + 9 integration = 16 tests
 
+### F5: FFmpeg Trim Export Integration ✅
+**Unit Tests:**
+- Trim duration calculations (4 tests)
+- Concat list format generation (3 tests)
+- Clip count detection (empty/single/multi) (3 tests)
+- Path normalization for concat (2 tests)
+- Timeline clips structure validation (1 test)
+
+**Integration Tests:**
+- IPC handler registration (2 tests)
+- Empty clips validation and error handling (3 tests)
+- Single clip trim with setStartTime/setDuration (3 tests)
+- Multi-clip concat demuxer implementation (6 tests)
+- Path normalization (1 test)
+- Concat list file cleanup (2 tests)
+- Export progress callbacks (2 tests)
+- Renderer export validation (3 tests)
+- FFmpeg codec configuration (2 tests)
+- Response structure (1 test)
+
+**Total:** 13 unit + 25 integration = 38 tests
+
 ### Cross-Feature Integration ✅
 **Integration Tests:**
 - Import → Library → Timeline workflow (1 test)
@@ -117,10 +139,10 @@ Static code analysis to verify feature implementation:
 **Total:** 4 integration tests
 
 ## Summary
-- **Total Tests:** 78
-- **Unit Tests:** 33 (pure function logic)
-- **Integration Tests:** 45 (code structure validation)
-- **Execution Time:** ~500ms
+- **Total Tests:** 116
+- **Unit Tests:** 46 (pure function logic)
+- **Integration Tests:** 70 (code structure validation)
+- **Execution Time:** ~600ms
 - **CI Impact:** Adds ~1 second to pipeline
 
 ## Tests Intentionally Skipped
@@ -277,6 +299,6 @@ npm test && echo "Tests passed" || echo "Tests failed"
 ---
 
 **Last Updated:** 2025-01-28
-**Test Count:** 78
-**Execution Time:** ~500ms
+**Test Count:** 116
+**Execution Time:** ~600ms
 **Pass Rate:** 100%

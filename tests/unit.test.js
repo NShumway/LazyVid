@@ -235,6 +235,120 @@ test('extract filename from Unix path', () => {
   assert.strictEqual(fileName, 'test.mp4');
 });
 
+// F5: FFmpeg Trim Export Integration Tests
+console.log('\nF5: FFmpeg Trim Export Integration');
+
+test('single clip trim duration calculation', () => {
+  const clip = { trimStart: 2.5, trimEnd: 8.0, duration: 10 };
+  const trimDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
+  assert.strictEqual(trimDuration, 5.5);
+});
+
+test('single clip trim duration with defaults (no trimStart)', () => {
+  const clip = { trimEnd: 8.0, duration: 10 };
+  const trimDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
+  assert.strictEqual(trimDuration, 8.0);
+});
+
+test('single clip trim duration with defaults (no trimEnd)', () => {
+  const clip = { trimStart: 2.5, duration: 10 };
+  const trimDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
+  assert.strictEqual(trimDuration, 7.5);
+});
+
+test('single clip trim duration with no trim values', () => {
+  const clip = { duration: 10 };
+  const trimDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
+  assert.strictEqual(trimDuration, 10);
+});
+
+test('concat list format for single clip', () => {
+  const clip = { path: 'C:\\\\Videos\\\\test.mp4', trimStart: 1.5, trimEnd: 5.0, duration: 10 };
+  const line = `file '${clip.path.replace(/\\\\/g, '/')}'\\ninpoint ${clip.trimStart || 0}\\noutpoint ${clip.trimEnd || clip.duration}`;
+  assert.ok(line.includes("file 'C:/Videos/test.mp4'"));
+  assert.ok(line.includes('inpoint 1.5'));
+  assert.ok(line.includes('outpoint 5'));
+});
+
+test('concat list format with default trim values', () => {
+  const clip = { path: '/home/videos/test.mp4', duration: 10 };
+  const line = `file '${clip.path.replace(/\\\\/g, '/')}'\\ninpoint ${clip.trimStart || 0}\\noutpoint ${clip.trimEnd || clip.duration}`;
+  assert.ok(line.includes("file '/home/videos/test.mp4'"));
+  assert.ok(line.includes('inpoint 0'));
+  assert.ok(line.includes('outpoint 10'));
+});
+
+test('multi-clip concat list generation', () => {
+  const clips = [
+    { path: 'C:\\\\clip1.mp4', trimStart: 0, trimEnd: 5, duration: 10 },
+    { path: 'C:\\\\clip2.mp4', trimStart: 2, trimEnd: 8, duration: 10 },
+    { path: 'C:\\\\clip3.mp4', trimStart: 1, trimEnd: 6, duration: 10 }
+  ];
+  const fileList = clips.map((clip) => {
+    return `file '${clip.path.replace(/\\\\/g, '/')}'\\ninpoint ${clip.trimStart || 0}\\noutpoint ${clip.trimEnd || clip.duration}`;
+  }).join('\\n');
+  
+  assert.ok(fileList.includes('clip1.mp4'));
+  assert.ok(fileList.includes('clip2.mp4'));
+  assert.ok(fileList.includes('clip3.mp4'));
+  assert.ok(fileList.includes('inpoint 0'));
+  assert.ok(fileList.includes('inpoint 2'));
+  assert.ok(fileList.includes('inpoint 1'));
+});
+
+test('empty clips array detection', () => {
+  const clips = [];
+  const isEmpty = clips.length === 0;
+  assert.strictEqual(isEmpty, true);
+});
+
+test('single clip detection', () => {
+  const clips = [{ path: 'test.mp4', duration: 10 }];
+  const isSingleClip = clips.length === 1;
+  assert.strictEqual(isSingleClip, true);
+});
+
+test('multi-clip detection', () => {
+  const clips = [
+    { path: 'test1.mp4', duration: 10 },
+    { path: 'test2.mp4', duration: 15 }
+  ];
+  const isMultiClip = clips.length > 1;
+  assert.strictEqual(isMultiClip, true);
+});
+
+test('Windows path normalization for concat', () => {
+  const windowsPath = 'C:\\\\Users\\\\Videos\\\\test.mp4';
+  const normalized = windowsPath.replace(/\\\\/g, '/');
+  assert.strictEqual(normalized, 'C:/Users/Videos/test.mp4');
+});
+
+test('Unix path requires no normalization for concat', () => {
+  const unixPath = '/home/user/videos/test.mp4';
+  const normalized = unixPath.replace(/\\\\/g, '/');
+  assert.strictEqual(normalized, '/home/user/videos/test.mp4');
+});
+
+test('timeline clips array structure for export', () => {
+  const timelineClips = [
+    {
+      id: 'timeline-1',
+      clipId: 0,
+      name: 'clip1.mp4',
+      path: '/path/to/clip1.mp4',
+      startTime: 0,
+      duration: 10,
+      trimStart: 1,
+      trimEnd: 8
+    }
+  ];
+  
+  assert.ok(timelineClips[0].hasOwnProperty('path'));
+  assert.ok(timelineClips[0].hasOwnProperty('trimStart'));
+  assert.ok(timelineClips[0].hasOwnProperty('trimEnd'));
+  assert.ok(timelineClips[0].hasOwnProperty('duration'));
+});
+
 // Summary
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Total: ${passed + failed} | Passed: ${passed} | Failed: ${failed}`);

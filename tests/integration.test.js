@@ -268,6 +268,128 @@ test('status messages update on key actions', () => {
   assert.ok(statusUpdates >= 5, 'Expected at least 5 status updates');
 });
 
+// F5: FFmpeg Trim Export Integration - Code Structure Tests
+console.log('\nF5: FFmpeg Trim Export Integration - Code Structure');
+
+const mainPath = path.join(__dirname, '..', 'main.js');
+const mainCode = fs.readFileSync(mainPath, 'utf8');
+
+test('export-timeline IPC handler is registered', () => {
+  assert.ok(mainCode.includes("ipcMain.handle('export-timeline'"));
+});
+
+test('export-timeline receives clips and outputPath parameters', () => {
+  assert.ok(mainCode.includes('async (event, clips, outputPath)'));
+});
+
+test('empty clips array validation exists', () => {
+  assert.ok(mainCode.includes('clips.length === 0'));
+  assert.ok(mainCode.includes('No clips to export'));
+});
+
+test('empty clips rejection logic exists', () => {
+  assert.ok(mainCode.includes('reject({ success: false'));
+});
+
+test('single clip detection logic exists', () => {
+  assert.ok(mainCode.includes('clips.length === 1'));
+});
+
+test('single clip setStartTime call exists', () => {
+  assert.ok(mainCode.includes('.setStartTime(clip.trimStart || 0)'));
+});
+
+test('single clip setDuration call exists', () => {
+  assert.ok(mainCode.includes('.setDuration(trimDuration)'));
+});
+
+test('single clip trim duration calculation exists', () => {
+  assert.ok(mainCode.includes('clip.trimEnd || clip.duration'));
+  assert.ok(mainCode.includes('clip.trimStart || 0'));
+});
+
+test('multi-clip concat demuxer approach exists', () => {
+  assert.ok(mainCode.includes('concat'));
+  assert.ok(mainCode.includes('listFile'));
+});
+
+test('concat list file generation exists', () => {
+  assert.ok(mainCode.includes('clips.map((clip'));
+  assert.ok(mainCode.includes('inpoint'));
+  assert.ok(mainCode.includes('outpoint'));
+});
+
+test('concat list uses inpoint directive', () => {
+  assert.ok(mainCode.includes('inpoint ${clip.trimStart || 0}'));
+});
+
+test('concat list uses outpoint directive', () => {
+  assert.ok(mainCode.includes('outpoint ${clip.trimEnd || clip.duration}'));
+});
+
+test('path normalization for concat exists', () => {
+  assert.ok(mainCode.includes(".replace(/\\\\/g, '/')"));
+});
+
+test('FFmpeg input options for concat demuxer exist', () => {
+  assert.ok(mainCode.includes('.inputOptions'));
+  assert.ok(mainCode.includes('-f concat'));
+  assert.ok(mainCode.includes('-safe 0'));
+});
+
+test('temporary concat list file cleanup exists', () => {
+  assert.ok(mainCode.includes('fs.unlinkSync(listFile)'));
+});
+
+test('concat list cleanup on error exists', () => {
+  const cleanupCount = (mainCode.match(/fs\.unlinkSync\(listFile\)/g) || []).length;
+  assert.ok(cleanupCount >= 2, 'Expected cleanup in success and error handlers');
+});
+
+test('export progress callback exists for single clip', () => {
+  const singleClipSection = mainCode.substring(
+    mainCode.indexOf('if (clips.length === 1)'),
+    mainCode.indexOf('} else {')
+  );
+  assert.ok(singleClipSection.includes('export-progress'));
+});
+
+test('export progress callback exists for multi-clip', () => {
+  const multiClipSection = mainCode.substring(
+    mainCode.indexOf('} else {'),
+    mainCode.lastIndexOf('});')
+  );
+  assert.ok(multiClipSection.includes('export-progress'));
+});
+
+test('renderer checks for empty timeline before export', () => {
+  assert.ok(rendererCode.includes('timelineClips.length === 0'));
+});
+
+test('export button disabled state management exists', () => {
+  assert.ok(rendererCode.includes('exportBtn.disabled'));
+});
+
+test('error handling for empty timeline exists', () => {
+  assert.ok(rendererCode.includes('No clips on timeline to export'));
+});
+
+test('timelineClips array passed to export handler', () => {
+  assert.ok(rendererCode.includes('exportTimeline(timelineClips'));
+});
+
+test('FFmpeg codecs specified for output', () => {
+  assert.ok(mainCode.includes('.videoCodec'));
+  assert.ok(mainCode.includes('.audioCodec'));
+  assert.ok(mainCode.includes('libx264'));
+  assert.ok(mainCode.includes('aac'));
+});
+
+test('export success/error response structure', () => {
+  assert.ok(mainCode.includes('{ success: true }'));
+  assert.ok(mainCode.includes('{ success: false'));
+});
+
 // Summary
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Total: ${passed + failed} | Passed: ${passed} | Failed: ${failed}`);
