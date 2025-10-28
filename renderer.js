@@ -193,6 +193,7 @@ playBtn.addEventListener('click', () => {
     playBtn.textContent = '▶';
     updateStatus('Playback paused');
   } else {
+    currentPlayingClipIndex = 0;
     const firstClip = timelineClips[0];
     updateStatus(`Loading: ${firstClip.name}`);
     videoPlayer.src = `file://${firstClip.path}`;
@@ -208,21 +209,35 @@ playBtn.addEventListener('click', () => {
 
 let animationFrameId = null;
 
+let currentPlayingClipIndex = 0;
+
 videoPlayer.addEventListener('play', () => {
   function updatePlayheadFromVideo() {
     if (timelineState.isPlaying && timelineClips.length > 0) {
-      const firstClip = timelineClips[0];
-      const trimStart = firstClip.trimStart || 0;
-      const trimEnd = firstClip.trimEnd || firstClip.duration;
+      const currentClip = timelineClips[currentPlayingClipIndex];
+      const trimStart = currentClip.trimStart || 0;
+      const trimEnd = currentClip.trimEnd || currentClip.duration;
       
       if (videoPlayer.currentTime >= trimEnd) {
-        videoPlayer.pause();
-        timelineState.isPlaying = false;
-        playBtn.textContent = '▶';
-        return;
+        if (currentPlayingClipIndex < timelineClips.length - 1) {
+          currentPlayingClipIndex++;
+          const nextClip = timelineClips[currentPlayingClipIndex];
+          videoPlayer.src = `file://${nextClip.path}`;
+          videoPlayer.currentTime = nextClip.trimStart || 0;
+          videoPlayer.play();
+          updateStatus(`Playing: ${nextClip.name}`);
+          return;
+        } else {
+          videoPlayer.pause();
+          timelineState.isPlaying = false;
+          playBtn.textContent = '▶';
+          currentPlayingClipIndex = 0;
+          updateStatus('Playback complete');
+          return;
+        }
       }
       
-      timelineState.currentTime = firstClip.startTime + (videoPlayer.currentTime - trimStart);
+      timelineState.currentTime = currentClip.startTime + (videoPlayer.currentTime - trimStart);
       updatePlayhead();
       animationFrameId = requestAnimationFrame(updatePlayheadFromVideo);
     }
@@ -307,7 +322,17 @@ function renderMediaLibrary() {
         videoPlayer.currentTime = 0;
         videoPlayer.style.display = 'block';
         dropzone.style.display = 'none';
-        updateStatus(`Preview: ${clip.name}`);
+        
+        const alreadyOnTimeline = timelineClips.some(tc => tc.clipId === clip.id);
+        if (!alreadyOnTimeline) {
+          const nextPosition = timelineClips.length > 0 
+            ? Math.max(...timelineClips.map(c => c.startTime + (c.trimEnd - c.trimStart)))
+            : 0;
+          addClipToTimeline(clip, nextPosition);
+          updateStatus(`Added to timeline: ${clip.name}`);
+        } else {
+          updateStatus(`Preview: ${clip.name}`);
+        }
       }
     });
   });
