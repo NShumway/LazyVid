@@ -7,7 +7,9 @@
     "start": "electron .",
     "dist": "electron-builder --win --config.win.target=dir",
     "validate": "node validate.js",
-    "test": "node -e \"console.log('No tests configured')\""
+    "test": "node tests/unit.test.js && node tests/integration.test.js",
+    "test:unit": "node tests/unit.test.js",
+    "test:integration": "node tests/integration.test.js"
   },
   "keywords": ["electron", "video", "editor"],
   "author": "",
