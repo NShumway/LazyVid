@@ -52,8 +52,8 @@ importBtn.addEventListener('click', async () => {
 });
 
 exportBtn.addEventListener('click', async () => {
-  if (!currentVideoPath) {
-    updateStatus('No video loaded', true);
+  if (timelineClips.length === 0) {
+    updateStatus('No clips on timeline to export', true);
     return;
   }
 
@@ -75,7 +75,7 @@ exportBtn.addEventListener('click', async () => {
       progressText.textContent = `${rounded}%`;
     });
 
-    const result = await window.electronAPI.exportVideo(currentVideoPath, outputPath);
+    const result = await window.electronAPI.exportTimeline(timelineClips, outputPath);
 
     if (result.success) {
       updateStatus(`Video exported successfully to: ${outputPath.split('\\').pop()}`);
@@ -259,6 +259,7 @@ function addClipToTimeline(clip, startTime) {
   
   timelineClips.push(timelineClip);
   renderTimelineClips();
+  exportBtn.disabled = false;
 }
 
 let selectedClip = null;
@@ -358,6 +359,9 @@ timeline.addEventListener('drop', (e) => {
 window.deleteTimelineClip = function(clipId) {
   timelineClips = timelineClips.filter(c => c.id !== clipId);
   renderTimelineClips();
+  if (timelineClips.length === 0) {
+    exportBtn.disabled = true;
+  }
 };
 
 // Drag-Drop Import
