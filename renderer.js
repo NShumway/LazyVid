@@ -261,6 +261,13 @@ function addToMediaLibrary(videoPath) {
   
   mediaLibrary.push(clip);
   renderMediaLibrary();
+  
+  if (mediaLibrary.length === 1) {
+    videoPlayer.src = `file://${videoPath}`;
+    videoPlayer.style.display = 'block';
+    dropzone.style.display = 'none';
+    updateStatus(`Preview: ${fileName}`);
+  }
 }
 
 function renderMediaLibrary() {
