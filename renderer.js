@@ -131,6 +131,8 @@ const timeDisplay = document.getElementById('timeDisplay');
 const zoomInBtn = document.getElementById('zoomInBtn');
 const zoomOutBtn = document.getElementById('zoomOutBtn');
 const playBtn = document.getElementById('playBtn');
+const markInBtn = document.getElementById('markInBtn');
+const markOutBtn = document.getElementById('markOutBtn');
 
 let timelineState = {
   duration: 60,
@@ -443,6 +445,9 @@ function renderTimelineClips() {
         selectedClip = clip.id;
         renderTimelineClips();
         
+        markInBtn.disabled = false;
+        markOutBtn.disabled = false;
+        
         updateStatus(`Loading clip: ${clip.name}`);
         videoPlayer.src = `file://${clip.path}`;
         videoPlayer.currentTime = clip.trimStart || 0;
@@ -519,11 +524,83 @@ timeline.addEventListener('drop', (e) => {
 
 window.deleteTimelineClip = function(clipId) {
   timelineClips = timelineClips.filter(c => c.id !== clipId);
+  if (selectedClip === clipId) {
+    selectedClip = null;
+    markInBtn.disabled = true;
+    markOutBtn.disabled = true;
+  }
   renderTimelineClips();
   if (timelineClips.length === 0) {
     exportBtn.disabled = true;
   }
 };
+
+// Mark In/Out button handlers
+markInBtn.addEventListener('click', () => {
+  if (!selectedClip) return;
+  
+  const clip = timelineClips.find(c => c.id === selectedClip);
+  if (!clip) return;
+  
+  const currentTime = videoPlayer.currentTime;
+  if (currentTime < clip.trimEnd) {
+    clip.trimStart = Math.max(0, currentTime);
+    renderTimelineClips();
+    updateStatus(`In point set at ${formatTime(clip.trimStart)}`);
+  } else {
+    updateStatus('In point must be before out point', true);
+  }
+});
+
+markOutBtn.addEventListener('click', () => {
+  if (!selectedClip) return;
+  
+  const clip = timelineClips.find(c => c.id === selectedClip);
+  if (!clip) return;
+  
+  const currentTime = videoPlayer.currentTime;
+  if (currentTime > clip.trimStart && currentTime <= clip.duration) {
+    clip.trimEnd = currentTime;
+    renderTimelineClips();
+    updateStatus(`Out point set at ${formatTime(clip.trimEnd)}`);
+  } else {
+    updateStatus('Out point must be after in point and within clip duration', true);
+  }
+});
+
+// Keyboard shortcuts for trimming
+document.addEventListener('keydown', (e) => {
+  if (!selectedClip) return;
+  
+  const clip = timelineClips.find(c => c.id === selectedClip);
+  if (!clip) return;
+  
+  // I key - Mark In point
+  if (e.key === 'i' || e.key === 'I') {
+    e.preventDefault();
+    const currentTime = videoPlayer.currentTime;
+    if (currentTime < clip.trimEnd) {
+      clip.trimStart = Math.max(0, currentTime);
+      renderTimelineClips();
+      updateStatus(`In point set at ${formatTime(clip.trimStart)}`);
+    } else {
+      updateStatus('In point must be before out point', true);
+    }
+  }
+  
+  // O key - Mark Out point
+  if (e.key === 'o' || e.key === 'O') {
+    e.preventDefault();
+    const currentTime = videoPlayer.currentTime;
+    if (currentTime > clip.trimStart && currentTime <= clip.duration) {
+      clip.trimEnd = currentTime;
+      renderTimelineClips();
+      updateStatus(`Out point set at ${formatTime(clip.trimEnd)}`);
+    } else {
+      updateStatus('Out point must be after in point and within clip duration', true);
+    }
+  }
+});
 
 // Drag-Drop Import
 const previewSection = document.querySelector('.preview');
