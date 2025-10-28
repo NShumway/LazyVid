@@ -220,6 +220,7 @@ playBtn.addEventListener('click', () => {
     playBtn.textContent = '▶';
     updateStatus('Playback paused');
   } else {
+    switchView('preview');
     currentPlayingClipIndex = 0;
     const firstClip = timelineClips[0];
     updateStatus(`Loading: ${firstClip.name}`);
@@ -361,8 +362,6 @@ function renderMediaLibrary() {
         } else {
           updateStatus(`Preview: ${clip.name}`);
         }
-        
-        switchView('preview');
       }
     });
   });
