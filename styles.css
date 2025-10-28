@@ -173,6 +173,11 @@ header p {
   color: #95a5a6;
 }
 
+.dropzone.drag-over {
+  background: rgba(52, 152, 219, 0.1);
+  border: 3px dashed #3498db;
+}
+
 .dropzone p {
   font-size: 1.5em;
   margin-bottom: 10px;

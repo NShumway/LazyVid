@@ -359,3 +359,46 @@ window.deleteTimelineClip = function(clipId) {
   timelineClips = timelineClips.filter(c => c.id !== clipId);
   renderTimelineClips();
 };
+
+// Drag-Drop Import
+const previewSection = document.querySelector('.preview');
+
+previewSection.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  if (e.dataTransfer.types.includes('Files')) {
+    dropzone.classList.add('drag-over');
+  }
+});
+
+previewSection.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  if (e.dataTransfer.types.includes('Files')) {
+    e.dataTransfer.dropEffect = 'copy';
+  }
+});
+
+previewSection.addEventListener('dragleave', (e) => {
+  if (e.target === previewSection || e.target === dropzone) {
+    dropzone.classList.remove('drag-over');
+  }
+});
+
+previewSection.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  
+  const files = Array.from(e.dataTransfer.files);
+  const videoFiles = files.filter(file => 
+    file.type.startsWith('video/') || 
+    /\.(mp4|mov|webm)$/i.test(file.name)
+  );
+  
+  if (videoFiles.length > 0) {
+    videoFiles.forEach(file => {
+      const videoPath = file.path;
+      addToMediaLibrary(videoPath);
+    });
+    
+    updateStatus(`Imported ${videoFiles.length} video(s)`);
+  }
+});
