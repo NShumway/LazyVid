@@ -27,6 +27,20 @@
         <video id="videoPlayer" controls style="display: none;"></video>
       </section>
 
+      <section class="timeline-section">
+        <div class="timeline-controls">
+          <button id="zoomInBtn" class="btn-icon" title="Zoom In">+</button>
+          <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">-</button>
+          <span id="timeDisplay">0:00</span>
+        </div>
+        <div class="timeline-container">
+          <div id="timeRuler" class="time-ruler"></div>
+          <div id="timeline" class="timeline">
+            <div id="playhead" class="playhead"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="status">
         <div id="statusMessage"></div>
         <div id="progressBar" class="progress-bar" style="display: none;">

@@ -178,3 +178,96 @@ header p {
   color: #95a5a6;
   font-weight: 500;
 }
+
+/* Timeline Foundation */
+.timeline-section {
+  background: #2c3e50;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  background: #34495e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.btn-icon:hover {
+  background: #475a6d;
+}
+
+#timeDisplay {
+  color: #ecf0f1;
+  font-family: monospace;
+  font-size: 14px;
+  margin-left: auto;
+}
+
+.timeline-container {
+  background: #34495e;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.time-ruler {
+  background: #2c3e50;
+  height: 30px;
+  border-bottom: 1px solid #1a252f;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 10px;
+}
+
+.time-marker {
+  position: absolute;
+  color: #95a5a6;
+  font-size: 11px;
+  font-family: monospace;
+  bottom: 5px;
+}
+
+.timeline {
+  height: 100px;
+  position: relative;
+  cursor: pointer;
+  background: #34495e;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: #e74c3c;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.playhead::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 12px;
+  height: 12px;
+  background: #e74c3c;
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
