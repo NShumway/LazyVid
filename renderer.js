@@ -243,11 +243,8 @@ updatePlayhead();
 // Auto-load test videos for development
 const testVideoDir = 'C:\\Users\\jmgva\\shumway\\LazyVid-main\\test-videos';
 const testVideos = [
-  `${testVideoDir}\\test-short-5s.mp4`,
-  `${testVideoDir}\\test-medium-10s.mp4`,
-  `${testVideoDir}\\test-clip-a.mp4`,
-  `${testVideoDir}\\test-clip-b.mp4`,
-  `${testVideoDir}\\test-clip-c.mp4`
+  `${testVideoDir}\\screen-recording-video.mp4`,
+  `${testVideoDir}\\screen-recording-video2.mp4`
 ];
 
 setTimeout(() => {
