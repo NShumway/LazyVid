@@ -173,6 +173,11 @@ header p {
   color: #95a5a6;
 }
 
+.dropzone.drag-over {
+  background: rgba(52, 152, 219, 0.1);
+  border: 3px dashed #3498db;
+}
+
 .dropzone p {
   font-size: 1.5em;
   margin-bottom: 10px;
@@ -389,5 +394,32 @@ header p {
 }
 
 .timeline-clip:hover .clip-delete {
+  opacity: 1;
+}
+
+/* Trim Handles */
+.trim-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: rgba(243, 156, 18, 0.8);
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 5;
+}
+
+.trim-handle-left {
+  left: 0;
+  border-right: 2px solid #f39c12;
+}
+
+.trim-handle-right {
+  right: 0;
+  border-left: 2px solid #f39c12;
+}
+
+.timeline-clip.selected .trim-handle {
   opacity: 1;
 }
