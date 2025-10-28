@@ -20,20 +20,25 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 95%;
   max-width: 1400px;
+  height: 95vh;
   padding: 30px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   border-bottom: 2px solid #ecf0f1;
-  padding-bottom: 20px;
+  padding-bottom: 15px;
+  flex-shrink: 0;
 }
 
 header h1 {
   color: #667eea;
-  font-size: 2.5em;
-  margin-bottom: 10px;
+  font-size: 2em;
+  margin-bottom: 8px;
 }
 
 header p {
@@ -46,6 +51,10 @@ header p {
   gap: 15px;
   margin-bottom: 25px;
   justify-content: center;
+  padding: 15px 0;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
 }
 
 .btn {
@@ -161,11 +170,12 @@ header p {
   background: #ecf0f1;
   border-radius: 8px;
   padding: 20px;
-  margin-bottom: 20px;
-  min-height: 400px;
+  min-height: 300px;
+  max-height: 400px;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .dropzone {
