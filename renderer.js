@@ -176,8 +176,30 @@ function updatePlayhead() {
 function seekTimeline(clickX) {
   const rect = timeline.getBoundingClientRect();
   const position = clickX - rect.left;
-  timelineState.currentTime = Math.max(0, Math.min(position / timelineState.pixelsPerSecond, timelineState.duration));
+  const seekTime = Math.max(0, Math.min(position / timelineState.pixelsPerSecond, timelineState.duration));
+  timelineState.currentTime = seekTime;
   updatePlayhead();
+  
+  // Find which clip we're seeking into
+  for (const clip of timelineClips) {
+    const clipStart = clip.startTime;
+    const clipEnd = clip.startTime + (clip.trimEnd - clip.trimStart);
+    
+    if (seekTime >= clipStart && seekTime < clipEnd) {
+      // Load this clip and seek to the right position within it
+      const offsetInClip = seekTime - clipStart;
+      const videoTime = clip.trimStart + offsetInClip;
+      
+      if (videoPlayer.src !== `file://${clip.path}`) {
+        videoPlayer.src = `file://${clip.path}`;
+      }
+      videoPlayer.currentTime = videoTime;
+      videoPlayer.style.display = 'block';
+      dropzone.style.display = 'none';
+      updateStatus(`Seeked to ${clip.name} @ ${formatTime(videoTime)}`);
+      return;
+    }
+  }
 }
 
 timeline.addEventListener('click', (e) => {
@@ -371,7 +393,7 @@ function renderMediaLibrary() {
 
 function handleDragStart(e) {
   e.dataTransfer.effectAllowed = 'copy';
-  e.dataTransfer.setData('text/plain', e.target.dataset.clipId);
+  e.dataTransfer.setData('media-library-clip-id', e.target.dataset.clipId);
 }
 
 timeline.addEventListener('dragover', (e) => {
@@ -381,8 +403,24 @@ timeline.addEventListener('dragover', (e) => {
 
 timeline.addEventListener('drop', (e) => {
   e.preventDefault();
-  const clipId = parseInt(e.dataTransfer.getData('text/plain'));
-  const clip = mediaLibrary.find(c => c.id === clipId);
+  
+  // Check if we're moving an existing timeline clip
+  const timelineClipId = e.dataTransfer.getData('timeline-clip-id');
+  if (timelineClipId) {
+    const clip = timelineClips.find(c => c.id === timelineClipId);
+    if (clip) {
+      const rect = timeline.getBoundingClientRect();
+      const newPosition = e.clientX - rect.left;
+      clip.startTime = Math.max(0, newPosition / timelineState.pixelsPerSecond);
+      renderTimelineClips();
+      updateStatus(`Moved clip: ${clip.name}`);
+    }
+    return;
+  }
+  
+  // Otherwise, it's adding a new clip from media library
+  const mediaClipId = parseInt(e.dataTransfer.getData('media-library-clip-id'));
+  const clip = mediaLibrary.find(c => c.id === mediaClipId);
   
   if (clip) {
     const rect = timeline.getBoundingClientRect();
@@ -508,19 +546,6 @@ function handleClipDragStart(e) {
   e.dataTransfer.setData('timeline-clip-id', e.target.dataset.timelineClipId);
 }
 
-timeline.addEventListener('drop', (e) => {
-  const timelineClipId = e.dataTransfer.getData('timeline-clip-id');
-  if (timelineClipId) {
-    e.preventDefault();
-    const clip = timelineClips.find(c => c.id === timelineClipId);
-    if (clip) {
-      const rect = timeline.getBoundingClientRect();
-      const newPosition = e.clientX - rect.left;
-      clip.startTime = Math.max(0, newPosition / timelineState.pixelsPerSecond);
-      renderTimelineClips();
-    }
-  }
-});
 
 window.deleteTimelineClip = function(clipId) {
   timelineClips = timelineClips.filter(c => c.id !== clipId);
