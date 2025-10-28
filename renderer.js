@@ -96,3 +96,81 @@ videoPlayer.addEventListener('error', () => {
   updateStatus('Video playback error', true);
   updateChecklist('preview', 'error');
 });
+
+// Timeline Foundation
+const timeline = document.getElementById('timeline');
+const timeRuler = document.getElementById('timeRuler');
+const playhead = document.getElementById('playhead');
+const timeDisplay = document.getElementById('timeDisplay');
+const zoomInBtn = document.getElementById('zoomInBtn');
+const zoomOutBtn = document.getElementById('zoomOutBtn');
+
+let timelineState = {
+  duration: 60,
+  currentTime: 0,
+  pixelsPerSecond: 10,
+  minZoom: 5,
+  maxZoom: 50
+};
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function renderTimeRuler() {
+  timeRuler.innerHTML = '';
+  const timelineWidth = timeline.offsetWidth;
+  const visibleDuration = timelineWidth / timelineState.pixelsPerSecond;
+  const interval = visibleDuration > 60 ? 10 : visibleDuration > 30 ? 5 : 1;
+  
+  for (let time = 0; time <= timelineState.duration; time += interval) {
+    const position = time * timelineState.pixelsPerSecond;
+    if (position <= timelineWidth) {
+      const marker = document.createElement('div');
+      marker.className = 'time-marker';
+      marker.style.left = `${position}px`;
+      marker.textContent = formatTime(time);
+      timeRuler.appendChild(marker);
+    }
+  }
+}
+
+function updatePlayhead() {
+  const position = timelineState.currentTime * timelineState.pixelsPerSecond;
+  playhead.style.left = `${position}px`;
+  timeDisplay.textContent = formatTime(timelineState.currentTime);
+}
+
+function seekTimeline(clickX) {
+  const rect = timeline.getBoundingClientRect();
+  const position = clickX - rect.left;
+  timelineState.currentTime = Math.max(0, Math.min(position / timelineState.pixelsPerSecond, timelineState.duration));
+  updatePlayhead();
+}
+
+timeline.addEventListener('click', (e) => {
+  seekTimeline(e.clientX);
+});
+
+zoomInBtn.addEventListener('click', () => {
+  if (timelineState.pixelsPerSecond < timelineState.maxZoom) {
+    timelineState.pixelsPerSecond += 5;
+    renderTimeRuler();
+    updatePlayhead();
+  }
+});
+
+zoomOutBtn.addEventListener('click', () => {
+  if (timelineState.pixelsPerSecond > timelineState.minZoom) {
+    timelineState.pixelsPerSecond -= 5;
+    renderTimeRuler();
+    updatePlayhead();
+  }
+});
+
+window.addEventListener('resize', renderTimeRuler);
+
+renderTimeRuler();
+updatePlayhead();
