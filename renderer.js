@@ -252,31 +252,87 @@ function addClipToTimeline(clip, startTime) {
     name: clip.name,
     path: clip.path,
     startTime: startTime,
-    duration: clip.duration
+    duration: clip.duration,
+    trimStart: 0,
+    trimEnd: clip.duration
   };
   
   timelineClips.push(timelineClip);
   renderTimelineClips();
 }
 
+let selectedClip = null;
+
 function renderTimelineClips() {
   document.querySelectorAll('.timeline-clip').forEach(el => el.remove());
   
   timelineClips.forEach(clip => {
+    const visibleDuration = clip.trimEnd - clip.trimStart;
     const clipEl = document.createElement('div');
     clipEl.className = 'timeline-clip';
+    if (selectedClip === clip.id) clipEl.classList.add('selected');
     clipEl.dataset.timelineClipId = clip.id;
     clipEl.style.left = `${clip.startTime * timelineState.pixelsPerSecond}px`;
-    clipEl.style.width = `${clip.duration * timelineState.pixelsPerSecond}px`;
+    clipEl.style.width = `${visibleDuration * timelineState.pixelsPerSecond}px`;
     clipEl.innerHTML = `
+      <div class="trim-handle trim-handle-left" data-handle="left"></div>
       ${clip.name}
+      <div class="trim-handle trim-handle-right" data-handle="right"></div>
       <button class="clip-delete" onclick="deleteTimelineClip('${clip.id}')">×</button>
     `;
     
     clipEl.draggable = true;
     clipEl.addEventListener('dragstart', handleClipDragStart);
+    clipEl.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('trim-handle') && !e.target.classList.contains('clip-delete')) {
+        selectedClip = clip.id;
+        renderTimelineClips();
+      }
+    });
+    
+    const leftHandle = clipEl.querySelector('.trim-handle-left');
+    const rightHandle = clipEl.querySelector('.trim-handle-right');
+    
+    leftHandle.addEventListener('mousedown', (e) => startTrim(e, clip, 'left'));
+    rightHandle.addEventListener('mousedown', (e) => startTrim(e, clip, 'right'));
+    
     timeline.appendChild(clipEl);
   });
+}
+
+let trimState = null;
+
+function startTrim(e, clip, handle) {
+  e.stopPropagation();
+  e.preventDefault();
+  trimState = { clip, handle, startX: e.clientX };
+  document.addEventListener('mousemove', handleTrimMove);
+  document.addEventListener('mouseup', handleTrimEnd);
+}
+
+function handleTrimMove(e) {
+  if (!trimState) return;
+  
+  const deltaX = e.clientX - trimState.startX;
+  const deltaTime = deltaX / timelineState.pixelsPerSecond;
+  const clip = trimState.clip;
+  
+  if (trimState.handle === 'left') {
+    const newTrimStart = Math.max(0, Math.min(clip.trimStart + deltaTime, clip.trimEnd - 0.1));
+    clip.trimStart = newTrimStart;
+  } else {
+    const newTrimEnd = Math.max(clip.trimStart + 0.1, Math.min(clip.trimEnd + deltaTime, clip.duration));
+    clip.trimEnd = newTrimEnd;
+  }
+  
+  trimState.startX = e.clientX;
+  renderTimelineClips();
+}
+
+function handleTrimEnd() {
+  trimState = null;
+  document.removeEventListener('mousemove', handleTrimMove);
+  document.removeEventListener('mouseup', handleTrimEnd);
 }
 
 function handleClipDragStart(e) {
