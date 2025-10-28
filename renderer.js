@@ -109,13 +109,15 @@ const playhead = document.getElementById('playhead');
 const timeDisplay = document.getElementById('timeDisplay');
 const zoomInBtn = document.getElementById('zoomInBtn');
 const zoomOutBtn = document.getElementById('zoomOutBtn');
+const playBtn = document.getElementById('playBtn');
 
 let timelineState = {
   duration: 60,
   currentTime: 0,
   pixelsPerSecond: 10,
   minZoom: 5,
-  maxZoom: 50
+  maxZoom: 50,
+  isPlaying: false
 };
 
 function formatTime(seconds) {
@@ -176,6 +178,64 @@ zoomOutBtn.addEventListener('click', () => {
 });
 
 window.addEventListener('resize', renderTimeRuler);
+
+playBtn.addEventListener('click', () => {
+  updateStatus(`Play button clicked (clips: ${timelineClips.length})`);
+  
+  if (timelineClips.length === 0) {
+    updateStatus('No clips on timeline to play', true);
+    return;
+  }
+  
+  if (timelineState.isPlaying) {
+    videoPlayer.pause();
+    timelineState.isPlaying = false;
+    playBtn.textContent = '▶';
+    updateStatus('Playback paused');
+  } else {
+    const firstClip = timelineClips[0];
+    updateStatus(`Loading: ${firstClip.name}`);
+    videoPlayer.src = `file://${firstClip.path}`;
+    videoPlayer.currentTime = firstClip.trimStart || 0;
+    videoPlayer.style.display = 'block';
+    dropzone.style.display = 'none';
+    videoPlayer.play();
+    timelineState.isPlaying = true;
+    playBtn.textContent = '⏸';
+    updateStatus(`Playing: ${firstClip.name} from ${formatTime(firstClip.trimStart || 0)}`);
+  }
+});
+
+let animationFrameId = null;
+
+videoPlayer.addEventListener('play', () => {
+  function updatePlayheadFromVideo() {
+    if (timelineState.isPlaying && timelineClips.length > 0) {
+      const firstClip = timelineClips[0];
+      const trimStart = firstClip.trimStart || 0;
+      const trimEnd = firstClip.trimEnd || firstClip.duration;
+      
+      if (videoPlayer.currentTime >= trimEnd) {
+        videoPlayer.pause();
+        timelineState.isPlaying = false;
+        playBtn.textContent = '▶';
+        return;
+      }
+      
+      timelineState.currentTime = firstClip.startTime + (videoPlayer.currentTime - trimStart);
+      updatePlayhead();
+      animationFrameId = requestAnimationFrame(updatePlayheadFromVideo);
+    }
+  }
+  updatePlayheadFromVideo();
+});
+
+videoPlayer.addEventListener('pause', () => {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+});
 
 renderTimeRuler();
 updatePlayhead();
@@ -258,8 +318,16 @@ function addClipToTimeline(clip, startTime) {
   };
   
   timelineClips.push(timelineClip);
+  updateStatus(`Clip added to timeline (count: ${timelineClips.length})`);
   renderTimelineClips();
   exportBtn.disabled = false;
+  
+  if (timelineClips.length === 1) {
+    videoPlayer.src = `file://${clip.path}`;
+    videoPlayer.style.display = 'block';
+    dropzone.style.display = 'none';
+    updateStatus(`Preview loaded: ${clip.name}`);
+  }
 }
 
 let selectedClip = null;
@@ -288,6 +356,13 @@ function renderTimelineClips() {
       if (!e.target.classList.contains('trim-handle') && !e.target.classList.contains('clip-delete')) {
         selectedClip = clip.id;
         renderTimelineClips();
+        
+        updateStatus(`Loading clip: ${clip.name}`);
+        videoPlayer.src = `file://${clip.path}`;
+        videoPlayer.currentTime = clip.trimStart || 0;
+        videoPlayer.style.display = 'block';
+        dropzone.style.display = 'none';
+        updateStatus(`Preview: ${clip.name} @ ${formatTime(clip.trimStart || 0)}`);
       }
     });
     
