@@ -240,6 +240,23 @@ videoPlayer.addEventListener('pause', () => {
 renderTimeRuler();
 updatePlayhead();
 
+// Auto-load test videos for development
+const testVideoDir = 'C:\\Users\\jmgva\\shumway\\LazyVid-main\\test-videos';
+const testVideos = [
+  `${testVideoDir}\\test-short-5s.mp4`,
+  `${testVideoDir}\\test-medium-10s.mp4`,
+  `${testVideoDir}\\test-clip-a.mp4`,
+  `${testVideoDir}\\test-clip-b.mp4`,
+  `${testVideoDir}\\test-clip-c.mp4`
+];
+
+setTimeout(() => {
+  testVideos.forEach(videoPath => {
+    addToMediaLibrary(videoPath);
+  });
+  updateStatus('Test videos loaded in library');
+}, 500);
+
 // Clip Management
 const mediaItems = document.getElementById('mediaItems');
 
@@ -285,6 +302,17 @@ function renderMediaLibrary() {
   
   document.querySelectorAll('.media-item').forEach(item => {
     item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('click', () => {
+      const clipId = parseInt(item.dataset.clipId);
+      const clip = mediaLibrary.find(c => c.id === clipId);
+      if (clip) {
+        videoPlayer.src = `file://${clip.path}`;
+        videoPlayer.currentTime = 0;
+        videoPlayer.style.display = 'block';
+        dropzone.style.display = 'none';
+        updateStatus(`Preview: ${clip.name}`);
+      }
+    });
   });
 }
 
