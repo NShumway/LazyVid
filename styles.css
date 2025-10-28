@@ -372,7 +372,7 @@ header p {
   height: 100%;
   background: #e74c3c;
   z-index: 10;
-  pointer-events: none;
+  cursor: ew-resize;
 }
 
 .playhead::before {
@@ -385,6 +385,7 @@ header p {
   background: #e74c3c;
   border-radius: 2px;
   transform: rotate(45deg);
+  cursor: ew-resize;
 }
 
 /* Timeline Clips */

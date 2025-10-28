@@ -1,0 +1,3 @@
+1: Dragging a clip on the timeline visually looks like you are moving a duplicate of the clip instead of the clip itself.
+2: Dragging a clip on the timeline does not move it to the new location - once you let go nothing is changed.
+3: Dragging the playback head should show the playback head moving, update the playback vid in real time to show the frame the head is on, and should ACTUALLY move it once released.

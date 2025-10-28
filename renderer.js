@@ -308,6 +308,26 @@ renderTimeRuler();
 updatePlayhead();
 switchView('preview');
 
+// Playhead dragging
+playhead.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  playheadDragState = { isDragging: true };
+  document.addEventListener('mousemove', handlePlayheadDrag);
+  document.addEventListener('mouseup', handlePlayheadDragEnd);
+});
+
+function handlePlayheadDrag(e) {
+  if (!playheadDragState) return;
+  seekTimeline(e.clientX);
+}
+
+function handlePlayheadDragEnd() {
+  playheadDragState = null;
+  document.removeEventListener('mousemove', handlePlayheadDrag);
+  document.removeEventListener('mouseup', handlePlayheadDragEnd);
+}
+
 // Auto-load test videos for development
 const testVideoDir = 'C:\\Users\\jmgva\\shumway\\LazyVid-main\\test-videos';
 const testVideos = [
@@ -404,21 +424,7 @@ timeline.addEventListener('dragover', (e) => {
 timeline.addEventListener('drop', (e) => {
   e.preventDefault();
   
-  // Check if we're moving an existing timeline clip
-  const timelineClipId = e.dataTransfer.getData('timeline-clip-id');
-  if (timelineClipId) {
-    const clip = timelineClips.find(c => c.id === timelineClipId);
-    if (clip) {
-      const rect = timeline.getBoundingClientRect();
-      const newPosition = e.clientX - rect.left;
-      clip.startTime = Math.max(0, newPosition / timelineState.pixelsPerSecond);
-      renderTimelineClips();
-      updateStatus(`Moved clip: ${clip.name}`);
-    }
-    return;
-  }
-  
-  // Otherwise, it's adding a new clip from media library
+  // Adding a new clip from media library
   const mediaClipId = parseInt(e.dataTransfer.getData('media-library-clip-id'));
   const clip = mediaLibrary.find(c => c.id === mediaClipId);
   
@@ -476,8 +482,13 @@ function renderTimelineClips() {
       <button class="clip-delete" onclick="deleteTimelineClip('${clip.id}')">×</button>
     `;
     
-    clipEl.draggable = true;
-    clipEl.addEventListener('dragstart', handleClipDragStart);
+    clipEl.addEventListener('mousedown', (e) => {
+      if (e.target.classList.contains('trim-handle') || e.target.classList.contains('clip-delete')) {
+        return;
+      }
+      startClipDrag(e, clip);
+    });
+    
     clipEl.addEventListener('click', (e) => {
       if (!e.target.classList.contains('trim-handle') && !e.target.classList.contains('clip-delete')) {
         selectedClip = clip.id;
@@ -506,6 +517,8 @@ function renderTimelineClips() {
 }
 
 let trimState = null;
+let clipDragState = null;
+let playheadDragState = null;
 
 function startTrim(e, clip, handle) {
   e.stopPropagation();
@@ -540,11 +553,44 @@ function handleTrimEnd() {
   document.removeEventListener('mouseup', handleTrimEnd);
 }
 
-function handleClipDragStart(e) {
+function startClipDrag(e, clip) {
   e.stopPropagation();
-  e.dataTransfer.effectAllowed = 'move';
-  e.dataTransfer.setData('timeline-clip-id', e.target.dataset.timelineClipId);
+  e.preventDefault();
+  const rect = timeline.getBoundingClientRect();
+  const clipElement = e.currentTarget;
+  clipDragState = {
+    clip,
+    startX: e.clientX,
+    initialStartTime: clip.startTime,
+    timelineLeft: rect.left
+  };
+  clipElement.style.opacity = '0.7';
+  document.addEventListener('mousemove', handleClipDragMove);
+  document.addEventListener('mouseup', handleClipDragEnd);
 }
+
+function handleClipDragMove(e) {
+  if (!clipDragState) return;
+  
+  const deltaX = e.clientX - clipDragState.startX;
+  const deltaTime = deltaX / timelineState.pixelsPerSecond;
+  clipDragState.clip.startTime = Math.max(0, clipDragState.initialStartTime + deltaTime);
+  
+  renderTimelineClips();
+}
+
+function handleClipDragEnd(e) {
+  if (!clipDragState) return;
+  
+  const clipElements = document.querySelectorAll('.timeline-clip');
+  clipElements.forEach(el => el.style.opacity = '1');
+  
+  updateStatus(`Moved clip: ${clipDragState.clip.name}`);
+  clipDragState = null;
+  document.removeEventListener('mousemove', handleClipDragMove);
+  document.removeEventListener('mouseup', handleClipDragEnd);
+}
+
 
 
 window.deleteTimelineClip = function(clipId) {
