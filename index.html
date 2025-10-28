@@ -19,13 +19,22 @@
         <button id="exportBtn" class="btn btn-success" disabled>Export Video</button>
       </section>
 
-      <section class="preview">
+      <div class="workspace">
+        <aside class="media-library">
+          <h3>Media Library</h3>
+          <div id="mediaItems" class="media-items">
+            <p class="empty-state">No clips imported</p>
+          </div>
+        </aside>
+
+        <section class="preview">
         <div id="dropzone" class="dropzone">
           <p>No video loaded</p>
           <small>Click "Import Video" to select a file</small>
         </div>
         <video id="videoPlayer" controls style="display: none;"></video>
-      </section>
+        </section>
+      </div>
 
       <section class="timeline-section">
         <div class="timeline-controls">
