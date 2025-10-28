@@ -306,7 +306,7 @@ videoPlayer.addEventListener('pause', () => {
 
 renderTimeRuler();
 updatePlayhead();
-switchView('preview');
+switchView('library');
 
 // Playhead dragging
 playhead.addEventListener('mousedown', (e) => {
