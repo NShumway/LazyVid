@@ -2,6 +2,7 @@ let currentVideoPath = null;
 let mediaLibrary = [];
 let timelineClips = [];
 let clipIdCounter = 0;
+let currentView = 'preview';
 
 const importBtn = document.getElementById('importBtn');
 const exportBtn = document.getElementById('exportBtn');
@@ -11,10 +12,25 @@ const statusMessage = document.getElementById('statusMessage');
 const progressBar = document.getElementById('progressBar');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
+const viewToggleBtn = document.getElementById('viewToggleBtn');
+const workspace = document.querySelector('.workspace');
 
 function updateStatus(message, isError = false) {
   statusMessage.textContent = message;
   statusMessage.style.color = isError ? '#e74c3c' : '#2ecc71';
+}
+
+function switchView(view) {
+  currentView = view;
+  workspace.className = `workspace ${view}-view`;
+  
+  if (view === 'library') {
+    viewToggleBtn.textContent = '▭';
+    viewToggleBtn.title = 'Switch to Preview';
+  } else {
+    viewToggleBtn.textContent = '⊞';
+    viewToggleBtn.title = 'Switch to Library';
+  }
 }
 
 function updateChecklist(item, status) {
@@ -25,6 +41,10 @@ function updateChecklist(item, status) {
     element.style.color = status === 'success' ? '#2ecc71' : status === 'error' ? '#e74c3c' : '#95a5a6';
   }
 }
+
+viewToggleBtn.addEventListener('click', () => {
+  switchView(currentView === 'preview' ? 'library' : 'preview');
+});
 
 importBtn.addEventListener('click', async () => {
   try {
@@ -39,6 +59,7 @@ importBtn.addEventListener('click', async () => {
       exportBtn.disabled = false;
       
       addToMediaLibrary(videoPath);
+      switchView('library');
       
       updateStatus(`Video loaded: ${videoPath.split('\\').pop()}`);
       updateChecklist('import', 'success');
@@ -158,7 +179,13 @@ function seekTimeline(clickX) {
 }
 
 timeline.addEventListener('click', (e) => {
+  if (e.target.classList.contains('timeline-clip') || e.target.closest('.timeline-clip')) {
+    return;
+  }
   seekTimeline(e.clientX);
+  if (timelineClips.length > 0) {
+    switchView('preview');
+  }
 });
 
 zoomInBtn.addEventListener('click', () => {
@@ -254,6 +281,7 @@ videoPlayer.addEventListener('pause', () => {
 
 renderTimeRuler();
 updatePlayhead();
+switchView('preview');
 
 // Auto-load test videos for development
 const testVideoDir = 'C:\\Users\\jmgva\\shumway\\LazyVid-main\\test-videos';
@@ -333,6 +361,8 @@ function renderMediaLibrary() {
         } else {
           updateStatus(`Preview: ${clip.name}`);
         }
+        
+        switchView('preview');
       }
     });
   });
