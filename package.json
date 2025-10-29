@@ -1,0 +1,45 @@
+{
+  "name": "clipforge",
+  "version": "0.1.0",
+  "description": "Desktop video editor built with Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --config.win.target=dir",
+    "validate": "node validate.js",
+    "test": "node tests/unit.test.js && node tests/integration.test.js",
+    "test:unit": "node tests/unit.test.js",
+    "test:integration": "node tests/integration.test.js"
+  },
+  "keywords": ["electron", "video", "editor"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "fluent-ffmpeg": "^2.1.2",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+  },
+  "build": {
+    "appId": "com.clipforge.app",
+    "productName": "ClipForge",
+    "electronDist": "node_modules/electron/dist",
+    "win": {
+      "target": "dir",
+      "sign": null
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "styles.css",
+      "node_modules/**/*"
+    ],
+    "extraMetadata": {
+      "main": "main.js"
+    }
+  }
+}

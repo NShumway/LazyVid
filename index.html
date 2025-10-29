@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClipForge - Thin Slice MVP</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ClipForge MVP</h1>
+      <p>Tech Stack Validation: Electron + FFmpeg + electron-builder</p>
+    </header>
+
+    <main>
+      <section class="controls">
+        <button id="importBtn" class="btn btn-primary">Import Video</button>
+        <button id="exportBtn" class="btn btn-success" disabled>Export Video</button>
+        <button id="viewToggleBtn" class="btn btn-secondary" title="Toggle Library/Preview">⊞</button>
+      </section>
+
+      <div class="workspace">
+        <aside class="media-library" id="mediaLibrary">
+          <h3>Media Library</h3>
+          <div id="mediaItems" class="media-items">
+            <p class="empty-state">No clips imported</p>
+          </div>
+        </aside>
+
+        <section class="preview" id="previewPane">
+        <div id="dropzone" class="dropzone">
+          <p>No video loaded</p>
+          <small>Click "Import Video" to select a file</small>
+        </div>
+        <video id="videoPlayer" controls style="display: none;"></video>
+        </section>
+      </div>
+
+      <section class="timeline-section">
+        <div class="timeline-controls">
+          <button id="playBtn" class="btn-icon" title="Play/Pause">▶</button>
+          <button id="zoomInBtn" class="btn-icon" title="Zoom In" style="display: none;">+</button>
+          <button id="zoomOutBtn" class="btn-icon" title="Zoom Out" style="display: none;">-</button>
+          <button id="markInBtn" class="btn-icon" title="Mark In Point (I)" disabled>[◀</button>
+          <button id="markOutBtn" class="btn-icon" title="Mark Out Point (O)" disabled>▶]</button>
+          <span id="timeDisplay">0:00</span>
+        </div>
+        <div class="timeline-container">
+          <div id="timeRuler" class="time-ruler"></div>
+          <div id="timeline" class="timeline">
+            <div id="playhead" class="playhead"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="status">
+        <div id="statusMessage"></div>
+        <div id="progressBar" class="progress-bar" style="display: none;">
+          <div id="progressFill" class="progress-fill"></div>
+          <span id="progressText">0%</span>
+        </div>
+      </section>
+
+      <section class="info">
+        <h3>Validation Checklist:</h3>
+        <ul>
+          <li id="check-electron">✓ Electron app launches</li>
+          <li id="check-import">⏳ Video import via file picker</li>
+          <li id="check-preview">⏳ Video preview playback</li>
+          <li id="check-ffmpeg">⏳ FFmpeg binary accessible</li>
+          <li id="check-export">⏳ Export video to MP4</li>
+          <li id="check-build">⏳ Packaged as distributable</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

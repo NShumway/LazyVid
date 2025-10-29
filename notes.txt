@@ -1,0 +1,4 @@
+1) App should start showing media library, not playback.
+2) the timeline + the video status message should be fixed to the bottom of the viewport. Make everything from validation checklist and clip library and playback window scrollable as the main window, with the timeline fixed on the bottom like a toolbar.
+3) the cursor on dragging the playhead looks like its resizing (arrows pointing right and left) which is incorrect for dragging something.
+
