@@ -16,8 +16,12 @@ const viewToggleBtn = document.getElementById('viewToggleBtn');
 const workspace = document.querySelector('.workspace');
 
 function updateStatus(message, isError = false) {
-  statusMessage.textContent = message;
-  statusMessage.style.color = isError ? '#e74c3c' : '#2ecc71';
+  if (statusMessage) {
+    statusMessage.textContent = message;
+    statusMessage.style.color = isError ? '#e74c3c' : '#2ecc71';
+  }
+  // Log to console for debugging
+  console.log(`[${isError ? 'ERROR' : 'STATUS'}] ${message}`);
 }
 
 function switchView(view) {
@@ -40,6 +44,8 @@ function updateChecklist(item, status) {
     element.textContent = element.textContent.replace(/^[✓✗⏳]/, symbols[status]);
     element.style.color = status === 'success' ? '#2ecc71' : status === 'error' ? '#e74c3c' : '#95a5a6';
   }
+  // Log checklist updates to console for debugging
+  console.log(`[CHECKLIST] ${item}: ${status}`);
 }
 
 viewToggleBtn.addEventListener('click', () => {
@@ -328,20 +334,6 @@ function handlePlayheadDragEnd() {
   document.removeEventListener('mouseup', handlePlayheadDragEnd);
 }
 
-// Auto-load test videos for development
-const testVideoDir = 'C:\\Users\\jmgva\\shumway\\LazyVid-main\\test-videos';
-const testVideos = [
-  `${testVideoDir}\\screen-recording-video.mp4`,
-  `${testVideoDir}\\screen-recording-video2.mp4`
-];
-
-setTimeout(() => {
-  testVideos.forEach(videoPath => {
-    addToMediaLibrary(videoPath);
-  });
-  updateStatus('Test videos loaded in library');
-}, 500);
-
 // Clip Management
 const mediaItems = document.getElementById('mediaItems');
 
@@ -492,11 +484,12 @@ function renderTimelineClips() {
     clipEl.addEventListener('click', (e) => {
       if (!e.target.classList.contains('trim-handle') && !e.target.classList.contains('clip-delete')) {
         selectedClip = clip.id;
+        console.log(`[CLIP SELECT] Clip selected: ${clip.name} (ID: ${clip.id})`);
         renderTimelineClips();
-        
+
         markInBtn.disabled = false;
         markOutBtn.disabled = false;
-        
+
         updateStatus(`Loading clip: ${clip.name}`);
         videoPlayer.src = `file://${clip.path}`;
         videoPlayer.currentTime = clip.trimStart || 0;
@@ -641,11 +634,21 @@ markOutBtn.addEventListener('click', () => {
 
 // Keyboard shortcuts for trimming
 document.addEventListener('keydown', (e) => {
-  if (!selectedClip) return;
-  
+  console.log(`[KEYDOWN] Key pressed: ${e.key}, selectedClip: ${selectedClip}, timelineClips: ${timelineClips.length}`);
+
+  if (!selectedClip) {
+    console.log('[KEYDOWN] No clip selected, ignoring keypress');
+    return;
+  }
+
   const clip = timelineClips.find(c => c.id === selectedClip);
-  if (!clip) return;
-  
+  if (!clip) {
+    console.log('[KEYDOWN] Selected clip not found in timeline');
+    return;
+  }
+
+  console.log(`[KEYDOWN] Found clip: ${clip.name}, current video time: ${videoPlayer.currentTime}`);
+
   // I key - Mark In point
   if (e.key === 'i' || e.key === 'I') {
     e.preventDefault();

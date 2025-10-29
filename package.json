@@ -11,7 +11,11 @@
     "test:unit": "node tests/unit.test.js",
     "test:integration": "node tests/integration.test.js"
   },
-  "keywords": ["electron", "video", "editor"],
+  "keywords": [
+    "electron",
+    "video",
+    "editor"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -19,8 +23,8 @@
     "electron-builder": "^24.9.1"
   },
   "dependencies": {
-    "fluent-ffmpeg": "^2.1.2",
-    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "fluent-ffmpeg": "^2.1.2"
   },
   "build": {
     "appId": "com.clipforge.app",
@@ -28,7 +32,8 @@
     "electronDist": "node_modules/electron/dist",
     "win": {
       "target": "dir",
-      "sign": null
+      "sign": null,
+      "signDlls": false
     },
     "files": [
       "main.js",
