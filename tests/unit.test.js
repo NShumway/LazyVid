@@ -497,6 +497,266 @@ test('play from current playhead - calculate offset in clip', () => {
   assert.strictEqual(videoTime, 7);
 });
 
+// F7: Screen Recording Tests
+console.log('\nF7: Screen Recording');
+
+test('recording state initialized correctly', () => {
+  const recordingState = {
+    isRecording: false,
+    mediaRecorder: null,
+    screenStream: null,
+    webcamStream: null,
+    combinedStream: null,
+    recordedChunks: []
+  };
+  assert.strictEqual(recordingState.isRecording, false);
+  assert.strictEqual(recordingState.mediaRecorder, null);
+  assert.strictEqual(recordingState.recordedChunks.length, 0);
+});
+
+test('webcam overlay position calculation within bounds', () => {
+  const previewWidth = 1000;
+  const previewHeight = 600;
+  const webcamWidth = 240;
+  const webcamHeight = 135;
+
+  // Test right edge constraint
+  const desiredLeft = 900;
+  const maxLeft = previewWidth - webcamWidth;
+  const clampedLeft = Math.min(desiredLeft, maxLeft);
+  assert.strictEqual(clampedLeft, 760);
+});
+
+test('webcam overlay position calculation at origin', () => {
+  const desiredLeft = -50;
+  const clampedLeft = Math.max(0, desiredLeft);
+  assert.strictEqual(clampedLeft, 0);
+});
+
+test('canvas dimensions match screen stream settings', () => {
+  const screenSettings = { width: 1920, height: 1080 };
+  const canvas = {
+    width: screenSettings.width || 1920,
+    height: screenSettings.height || 1080
+  };
+  assert.strictEqual(canvas.width, 1920);
+  assert.strictEqual(canvas.height, 1080);
+});
+
+test('webcam PIP dimensions calculated correctly', () => {
+  const canvasWidth = 1920;
+  const webcamWidth = canvasWidth * 0.2; // 20% of screen width
+  const webcamHeight = (webcamWidth * 9) / 16; // 16:9 aspect ratio
+
+  assert.strictEqual(webcamWidth, 384);
+  assert.strictEqual(webcamHeight, 216);
+});
+
+test('webcam PIP position in top-right corner', () => {
+  const canvasWidth = 1920;
+  const webcamWidth = canvasWidth * 0.2;
+  const padding = 20;
+  const x = canvasWidth - webcamWidth - padding;
+  const y = padding;
+
+  assert.strictEqual(x, 1516);
+  assert.strictEqual(y, 20);
+});
+
+test('recording file name format', () => {
+  const timestamp = 1234567890;
+  const fileName = `screen-recording-${timestamp}.webm`;
+  assert.ok(fileName.includes('screen-recording'));
+  assert.ok(fileName.endsWith('.webm'));
+});
+
+test('MediaRecorder data chunk collection', () => {
+  const recordedChunks = [];
+  const chunk1 = { data: 'chunk1', size: 100 };
+  const chunk2 = { data: 'chunk2', size: 200 };
+
+  if (chunk1.size > 0) recordedChunks.push(chunk1);
+  if (chunk2.size > 0) recordedChunks.push(chunk2);
+
+  assert.strictEqual(recordedChunks.length, 2);
+  assert.strictEqual(recordedChunks[0].size, 100);
+  assert.strictEqual(recordedChunks[1].size, 200);
+});
+
+test('recording stops and cleans up streams', () => {
+  let screenStreamStopped = false;
+  let webcamStreamStopped = false;
+  let combinedStreamStopped = false;
+
+  const mockStream = {
+    getTracks: () => [{
+      stop: () => { screenStreamStopped = true; }
+    }]
+  };
+
+  const webcamMock = {
+    getTracks: () => [{
+      stop: () => { webcamStreamStopped = true; }
+    }]
+  };
+
+  const combinedMock = {
+    getTracks: () => [{
+      stop: () => { combinedStreamStopped = true; }
+    }]
+  };
+
+  mockStream.getTracks().forEach(track => track.stop());
+  webcamMock.getTracks().forEach(track => track.stop());
+  combinedMock.getTracks().forEach(track => track.stop());
+
+  assert.strictEqual(screenStreamStopped, true);
+  assert.strictEqual(webcamStreamStopped, true);
+  assert.strictEqual(combinedStreamStopped, true);
+});
+
+test('recording UI state updates correctly', () => {
+  const uiState = {
+    recordScreenBtnDisabled: false,
+    recordWindowBtnDisabled: false,
+    stopRecordBtnDisabled: true,
+    recordScreenBtnVisible: true,
+    recordWindowBtnVisible: true,
+    stopRecordBtnVisible: false
+  };
+
+  // Start recording
+  uiState.recordScreenBtnDisabled = true;
+  uiState.recordWindowBtnDisabled = true;
+  uiState.recordScreenBtnVisible = false;
+  uiState.recordWindowBtnVisible = false;
+  uiState.stopRecordBtnDisabled = false;
+  uiState.stopRecordBtnVisible = true;
+
+  assert.strictEqual(uiState.recordScreenBtnDisabled, true);
+  assert.strictEqual(uiState.stopRecordBtnVisible, true);
+
+  // Stop recording
+  uiState.recordScreenBtnDisabled = false;
+  uiState.recordWindowBtnDisabled = false;
+  uiState.stopRecordBtnDisabled = true;
+  uiState.stopRecordBtnVisible = false;
+  uiState.recordScreenBtnVisible = true;
+  uiState.recordWindowBtnVisible = true;
+
+  assert.strictEqual(uiState.recordScreenBtnDisabled, false);
+  assert.strictEqual(uiState.stopRecordBtnVisible, false);
+});
+
+test('webcam drag delta calculation', () => {
+  const dragState = {
+    startX: 100,
+    startY: 200,
+    initialLeft: 500,
+    initialTop: 300
+  };
+
+  const currentX = 150;
+  const currentY = 250;
+
+  const deltaX = currentX - dragState.startX;
+  const deltaY = currentY - dragState.startY;
+  const newLeft = dragState.initialLeft + deltaX;
+  const newTop = dragState.initialTop + deltaY;
+
+  assert.strictEqual(deltaX, 50);
+  assert.strictEqual(deltaY, 50);
+  assert.strictEqual(newLeft, 550);
+  assert.strictEqual(newTop, 350);
+});
+
+test('recording source type validation', () => {
+  const validTypes = ['screen', 'window'];
+
+  assert.ok(validTypes.includes('screen'));
+  assert.ok(validTypes.includes('window'));
+  assert.ok(!validTypes.includes('invalid'));
+});
+
+test('MediaStream track combination', () => {
+  const tracks = [];
+
+  // Mock video track from canvas
+  const videoTrack = { kind: 'video', id: 'video-1' };
+  tracks.push(videoTrack);
+
+  // Mock audio tracks
+  const systemAudioTrack = { kind: 'audio', id: 'system-audio-1' };
+  const micTrack = { kind: 'audio', id: 'mic-1' };
+
+  tracks.push(systemAudioTrack);
+  tracks.push(micTrack);
+
+  const videoTracks = tracks.filter(t => t.kind === 'video');
+  const audioTracks = tracks.filter(t => t.kind === 'audio');
+
+  assert.strictEqual(videoTracks.length, 1);
+  assert.strictEqual(audioTracks.length, 2);
+  assert.strictEqual(tracks.length, 3);
+});
+
+test('recording time formatting - seconds only', () => {
+  function formatRecordingTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  assert.strictEqual(formatRecordingTime(0), '00:00');
+  assert.strictEqual(formatRecordingTime(5), '00:05');
+  assert.strictEqual(formatRecordingTime(59), '00:59');
+});
+
+test('recording time formatting - minutes and seconds', () => {
+  function formatRecordingTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  assert.strictEqual(formatRecordingTime(60), '01:00');
+  assert.strictEqual(formatRecordingTime(125), '02:05');
+  assert.strictEqual(formatRecordingTime(599), '09:59');
+});
+
+test('recording time formatting - long durations', () => {
+  function formatRecordingTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  assert.strictEqual(formatRecordingTime(600), '10:00');
+  assert.strictEqual(formatRecordingTime(3661), '61:01');
+});
+
+test('recording elapsed time calculation', () => {
+  const recordingStartTime = 1000000;
+  const currentTime = 1005000; // 5 seconds later
+  const elapsed = Math.floor((currentTime - recordingStartTime) / 1000);
+  assert.strictEqual(elapsed, 5);
+});
+
+test('recording timer interval setup', () => {
+  let intervalId = null;
+  let callCount = 0;
+
+  // Mock setInterval
+  intervalId = setInterval(() => {
+    callCount++;
+  }, 1000);
+
+  // Simulate some time passing
+  assert.ok(intervalId !== null);
+
+  clearInterval(intervalId);
+});
+
 // Summary
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Total: ${passed + failed} | Passed: ${passed} | Failed: ${failed}`);

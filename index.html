@@ -12,6 +12,10 @@
       <button id="importBtn" class="toolbar-btn" title="Import Video">📥</button>
       <button id="exportBtn" class="toolbar-btn" title="Export Video" disabled>💾</button>
       <div class="toolbar-separator"></div>
+      <button id="recordScreenBtn" class="toolbar-btn" title="Record Screen">⏺</button>
+      <button id="recordWindowBtn" class="toolbar-btn" title="Record Window">🪟</button>
+      <button id="stopRecordBtn" class="toolbar-btn" title="Stop Recording" disabled style="display: none;">⏹</button>
+      <div class="toolbar-separator"></div>
       <button id="markInBtn" class="toolbar-btn" title="Mark In Point (I)" disabled>I</button>
       <button id="markOutBtn" class="toolbar-btn" title="Mark Out Point (O)" disabled>O</button>
       <button id="splitBtn" class="toolbar-btn" title="Split Clip at Playhead" disabled>✂</button>
@@ -21,11 +25,27 @@
     <main class="main-content">
       <section class="video-preview">
         <video id="videoPlayer"></video>
+        <video id="webcamOverlay" class="webcam-overlay" style="display: none;"></video>
+        <div id="recordingIndicator" class="recording-indicator" style="display: none;">
+          <span class="recording-dot"></span>
+          <span id="recordingTime">00:00</span>
+        </div>
         <div id="dropzone" class="dropzone">
           <p>No video loaded</p>
           <small>Import or drag video files here</small>
         </div>
       </section>
+
+      <!-- Window Picker Modal -->
+      <div id="windowPickerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <h2>Select Window to Record</h2>
+          <div id="windowPickerGrid" class="window-picker-grid"></div>
+          <div class="modal-actions">
+            <button id="cancelWindowPicker" class="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
     </main>
 
     <footer class="bottom-bar">

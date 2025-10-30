@@ -30,15 +30,36 @@ importBtn.addEventListener('click', async () => {
   }
 });
 
-async function addVideoToTimeline(videoPath) {
-  const fileName = videoPath.split('\\').pop();
+async function addVideoToTimeline(videoPath, overrideDuration = null) {
+  console.log('[addVideoToTimeline] Path:', videoPath);
+  console.log('[addVideoToTimeline] Override duration:', overrideDuration);
+  const fileName = videoPath.split('\\').pop().split('/').pop();
 
   // Create temp video to get duration and metadata
   const tempVideo = document.createElement('video');
-  tempVideo.src = `file://${videoPath}`;
+  // Convert Windows path to file URL format
+  const fileUrl = videoPath.startsWith('file://') ? videoPath : `file:///${videoPath.replace(/\\/g, '/')}`;
+  console.log('[addVideoToTimeline] File URL:', fileUrl);
+
+  tempVideo.preload = 'metadata';
+  tempVideo.src = fileUrl;
+
+  // Add timeout in case metadata never loads
+  const metadataTimeout = setTimeout(() => {
+    console.error('[addVideoToTimeline] Metadata loading timed out');
+    updateStatus(`Failed to load video metadata: ${fileName}`, true);
+  }, 10000);
 
   tempVideo.addEventListener('loadedmetadata', async () => {
-    const duration = tempVideo.duration;
+    clearTimeout(metadataTimeout);
+    console.log('[addVideoToTimeline] Metadata loaded, duration:', tempVideo.duration);
+
+    // Use override duration if provided (for WebM files with Infinity duration)
+    let duration = tempVideo.duration;
+    if (overrideDuration !== null && (isNaN(duration) || !isFinite(duration) || duration === 0)) {
+      console.log('[addVideoToTimeline] Using override duration:', overrideDuration);
+      duration = overrideDuration;
+    }
     const resolution = `${tempVideo.videoWidth}x${tempVideo.videoHeight}`;
 
     // Get file size
@@ -83,12 +104,25 @@ async function addVideoToTimeline(videoPath) {
 
     // Load first clip in player if this is the first clip
     if (timelineClips.length === 1) {
-      videoPlayer.src = `file://${videoPath}`;
+      videoPlayer.src = fileUrl;
       videoPlayer.currentTime = 0;
     }
 
     updateStatus(`Added to timeline: ${fileName}`);
   });
+
+  tempVideo.addEventListener('error', (e) => {
+    clearTimeout(metadataTimeout);
+    console.error('[addVideoToTimeline] Error loading video:', e, tempVideo.error);
+    if (tempVideo.error) {
+      console.error('[addVideoToTimeline] Error code:', tempVideo.error.code);
+      console.error('[addVideoToTimeline] Error message:', tempVideo.error.message);
+    }
+    updateStatus(`Failed to load video: ${fileName}`, true);
+  });
+
+  // Force load
+  tempVideo.load();
 }
 
 function generateThumbnail(videoElement) {
@@ -1118,5 +1152,344 @@ videoPreview.addEventListener('drop', (e) => {
     });
 
     updateStatus(`Imported ${videoFiles.length} video(s)`);
+  }
+});
+
+// Screen Recording
+const recordScreenBtn = document.getElementById('recordScreenBtn');
+const recordWindowBtn = document.getElementById('recordWindowBtn');
+const stopRecordBtn = document.getElementById('stopRecordBtn');
+const webcamOverlay = document.getElementById('webcamOverlay');
+const recordingIndicator = document.getElementById('recordingIndicator');
+const recordingTime = document.getElementById('recordingTime');
+const windowPickerModal = document.getElementById('windowPickerModal');
+const windowPickerGrid = document.getElementById('windowPickerGrid');
+const cancelWindowPicker = document.getElementById('cancelWindowPicker');
+
+let mediaRecorder = null;
+let recordedChunks = [];
+let screenStream = null;
+let webcamStream = null;
+let combinedStream = null;
+let isRecording = false;
+let recordingStartTime = null;
+let recordingTimerInterval = null;
+
+// Webcam overlay dragging
+let webcamDragState = null;
+
+webcamOverlay.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const rect = webcamOverlay.getBoundingClientRect();
+  webcamDragState = {
+    startX: e.clientX,
+    startY: e.clientY,
+    initialLeft: rect.left,
+    initialTop: rect.top
+  };
+
+  document.addEventListener('mousemove', handleWebcamDrag);
+  document.addEventListener('mouseup', handleWebcamDragEnd);
+});
+
+function handleWebcamDrag(e) {
+  if (!webcamDragState) return;
+
+  const deltaX = e.clientX - webcamDragState.startX;
+  const deltaY = e.clientY - webcamDragState.startY;
+
+  const newLeft = webcamDragState.initialLeft + deltaX;
+  const newTop = webcamDragState.initialTop + deltaY;
+
+  const previewRect = videoPreview.getBoundingClientRect();
+  const webcamRect = webcamOverlay.getBoundingClientRect();
+
+  // Constrain to video preview bounds
+  const clampedLeft = Math.max(0, Math.min(newLeft - previewRect.left, previewRect.width - webcamRect.width));
+  const clampedTop = Math.max(0, Math.min(newTop - previewRect.top, previewRect.height - webcamRect.height));
+
+  webcamOverlay.style.left = `${clampedLeft}px`;
+  webcamOverlay.style.top = `${clampedTop}px`;
+  webcamOverlay.style.right = 'auto';
+}
+
+function handleWebcamDragEnd() {
+  webcamDragState = null;
+  document.removeEventListener('mousemove', handleWebcamDrag);
+  document.removeEventListener('mouseup', handleWebcamDragEnd);
+}
+
+function formatRecordingTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function startRecordingTimer() {
+  recordingStartTime = Date.now();
+
+  // Show overlay window instead of in-app indicator
+  window.electronAPI.showRecordingOverlay();
+  window.electronAPI.updateRecordingTime('00:00');
+
+  recordingTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+    const timeString = formatRecordingTime(elapsed);
+    window.electronAPI.updateRecordingTime(timeString);
+  }, 1000);
+}
+
+function stopRecordingTimer() {
+  if (recordingTimerInterval) {
+    clearInterval(recordingTimerInterval);
+    recordingTimerInterval = null;
+  }
+
+  // Hide overlay window
+  window.electronAPI.hideRecordingOverlay();
+  recordingStartTime = null;
+}
+
+async function showWindowPicker() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Get available windows
+      const sources = await window.electronAPI.getScreenSources({
+        types: ['window'],
+        thumbnailSize: { width: 200, height: 150 }
+      });
+
+      if (sources.length === 0) {
+        updateStatus('No windows available to record', true);
+        reject(new Error('No windows available'));
+        return;
+      }
+
+      // Clear previous options
+      windowPickerGrid.innerHTML = '';
+
+      // Create window options
+      sources.forEach(source => {
+        const option = document.createElement('div');
+        option.className = 'window-option';
+        option.innerHTML = `
+          <img src="${source.thumbnail.toDataURL()}" alt="${source.name}" />
+          <span>${source.name}</span>
+        `;
+        option.addEventListener('click', () => {
+          windowPickerModal.style.display = 'none';
+          resolve(source);
+        });
+        windowPickerGrid.appendChild(option);
+      });
+
+      // Show modal
+      windowPickerModal.style.display = 'flex';
+
+      // Handle cancel
+      const handleCancel = () => {
+        windowPickerModal.style.display = 'none';
+        cancelWindowPicker.removeEventListener('click', handleCancel);
+        reject(new Error('User cancelled'));
+      };
+      cancelWindowPicker.addEventListener('click', handleCancel);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function startRecording(sourceType, selectedSource = null) {
+  try {
+    updateStatus(`Selecting ${sourceType === 'screen' ? 'screen' : 'window'}...`);
+
+    let source;
+
+    if (selectedSource) {
+      source = selectedSource;
+    } else {
+      // Get available sources
+      const sources = await window.electronAPI.getScreenSources({
+        types: [sourceType]
+      });
+
+      if (sources.length === 0) {
+        updateStatus(`No ${sourceType} available to record`, true);
+        return;
+      }
+
+      // For screen recording, auto-select first screen
+      source = sources[0];
+    }
+
+    updateStatus(`Starting recording: ${source.name}`);
+
+    // Notify main process about selected source (so it can be used in setDisplayMediaRequestHandler)
+    window.electronAPI.setSelectedSource(source.id);
+
+    // Get screen/window stream
+    // Electron 28+ requires getDisplayMedia instead of getUserMedia with chromeMediaSource
+    screenStream = await navigator.mediaDevices.getDisplayMedia({
+      audio: false,
+      video: {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 }
+      }
+    });
+
+    // Get microphone audio
+    let micStream = null;
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false
+      });
+    } catch (err) {
+      console.log('Microphone not available:', err);
+    }
+
+    // Webcam is now shown in the overlay window, which will be captured by screen recording
+    // No need to composite it here
+
+    // Combine video from screen with audio tracks
+    combinedStream = new MediaStream();
+
+    // Add video track from screen
+    screenStream.getVideoTracks().forEach(track => combinedStream.addTrack(track));
+
+    // Add screen audio tracks if available
+    screenStream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+
+    // Add microphone audio if available
+    if (micStream) {
+      micStream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+    }
+
+    // Create MediaRecorder
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(combinedStream, {
+      mimeType: 'video/webm;codecs=vp9'
+    });
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        recordedChunks.push(e.data);
+      }
+    };
+
+    mediaRecorder.onstop = async () => {
+      updateStatus('Processing recording...');
+
+      // Calculate actual recording duration in seconds
+      const recordingDuration = recordingStartTime ? Math.floor((Date.now() - recordingStartTime) / 1000) : 0;
+      console.log('[Recording] Duration:', recordingDuration, 'seconds');
+
+      // Stop recording timer
+      stopRecordingTimer();
+
+      // Create blob from recorded chunks
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+
+      // Convert blob to array buffer
+      const arrayBuffer = await blob.arrayBuffer();
+
+      // Save to temp file
+      const fileName = `screen-recording-${Date.now()}.webm`;
+      const filePath = await window.electronAPI.saveRecording(arrayBuffer, fileName);
+
+      updateStatus('Recording saved, adding to timeline...');
+
+      // Add to timeline with known duration
+      addVideoToTimeline(filePath, recordingDuration);
+
+      // Cleanup
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        screenStream = null;
+      }
+      if (combinedStream) {
+        combinedStream.getTracks().forEach(track => track.stop());
+        combinedStream = null;
+      }
+      // Webcam is in overlay window - it will be cleaned up when overlay closes
+
+      isRecording = false;
+      recordScreenBtn.disabled = false;
+      recordWindowBtn.disabled = false;
+      stopRecordBtn.disabled = true;
+      stopRecordBtn.style.display = 'none';
+      recordScreenBtn.style.display = 'flex';
+      recordWindowBtn.style.display = 'flex';
+
+      updateStatus('Recording added to timeline!');
+    };
+
+    // Start recording
+    mediaRecorder.start(1000); // Collect data every second
+    isRecording = true;
+
+    // Start recording timer
+    startRecordingTimer();
+
+    // Update UI
+    recordScreenBtn.disabled = true;
+    recordWindowBtn.disabled = true;
+    recordScreenBtn.style.display = 'none';
+    recordWindowBtn.style.display = 'none';
+    stopRecordBtn.disabled = false;
+    stopRecordBtn.style.display = 'flex';
+
+    updateStatus('Recording... Click stop button when done');
+  } catch (error) {
+    updateStatus(`Recording failed: ${error.message}`, true);
+    console.error('Recording error:', error);
+
+    // Cleanup on error
+    if (screenStream) screenStream.getTracks().forEach(track => track.stop());
+    if (combinedStream) combinedStream.getTracks().forEach(track => track.stop());
+
+    // Stop timer and hide overlay
+    stopRecordingTimer();
+
+    isRecording = false;
+    recordScreenBtn.disabled = false;
+    recordWindowBtn.disabled = false;
+    stopRecordBtn.disabled = true;
+    stopRecordBtn.style.display = 'none';
+    recordScreenBtn.style.display = 'flex';
+    recordWindowBtn.style.display = 'flex';
+  }
+}
+
+recordScreenBtn.addEventListener('click', () => {
+  startRecording('screen');
+});
+
+recordWindowBtn.addEventListener('click', async () => {
+  try {
+    const selectedWindow = await showWindowPicker();
+    startRecording('window', selectedWindow);
+  } catch (error) {
+    if (error.message !== 'User cancelled') {
+      updateStatus(`Window selection failed: ${error.message}`, true);
+    }
+  }
+});
+
+stopRecordBtn.addEventListener('click', () => {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    updateStatus('Stopping recording...');
+  }
+});
+
+// Listen for stop recording request from overlay window
+window.electronAPI.onStopRecordingRequested(() => {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    updateStatus('Stopping recording...');
   }
 });

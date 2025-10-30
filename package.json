@@ -33,13 +33,15 @@
     "win": {
       "target": "dir",
       "sign": null,
-      "signDlls": false
+      "signDlls": false,
+      "signAndEditExecutable": false
     },
     "files": [
       "main.js",
       "preload.js",
       "renderer.js",
       "index.html",
+      "recording-overlay.html",
       "styles.css",
       "node_modules/**/*"
     ],

@@ -22,6 +22,8 @@ function test(description, fn) {
 // Read source files
 const rendererPath = path.join(__dirname, '..', 'renderer.js');
 const indexPath = path.join(__dirname, '..', 'index.html');
+const preloadPath = path.join(__dirname, '..', 'preload.js');
+const stylesPath = path.join(__dirname, '..', 'styles.css');
 const rendererCode = fs.readFileSync(rendererPath, 'utf8');
 const indexHtml = fs.readFileSync(indexPath, 'utf8');
 
@@ -481,6 +483,343 @@ test('canvas element created for thumbnail generation', () => {
 
 test('thumbnail uses toDataURL for encoding', () => {
   assert.ok(rendererCode.includes('toDataURL'));
+});
+
+// F7: Screen Recording - Code Structure Tests
+console.log('\nF7: Screen Recording - Code Structure');
+
+test('screen recording button exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="recordScreenBtn"'));
+  assert.ok(indexHtml.includes('Record Screen'));
+});
+
+test('window recording button exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="recordWindowBtn"'));
+  assert.ok(indexHtml.includes('Record Window'));
+});
+
+test('stop recording button exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="stopRecordBtn"'));
+  assert.ok(indexHtml.includes('Stop Recording'));
+});
+
+test('webcam overlay element exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="webcamOverlay"'));
+  assert.ok(indexHtml.includes('webcam-overlay'));
+});
+
+test('recording state variables initialized in renderer', () => {
+  assert.ok(rendererCode.includes('let mediaRecorder'));
+  assert.ok(rendererCode.includes('let recordedChunks'));
+  assert.ok(rendererCode.includes('let screenStream'));
+  assert.ok(rendererCode.includes('let webcamStream'));
+  assert.ok(rendererCode.includes('let combinedStream'));
+  assert.ok(rendererCode.includes('let isRecording'));
+});
+
+test('startRecording function is defined', () => {
+  assert.ok(rendererCode.includes('async function startRecording('));
+});
+
+test('recordScreenBtn event listener exists', () => {
+  assert.ok(rendererCode.includes("recordScreenBtn.addEventListener('click'"));
+});
+
+test('recordWindowBtn event listener exists', () => {
+  assert.ok(rendererCode.includes("recordWindowBtn.addEventListener('click'"));
+});
+
+test('stopRecordBtn event listener exists', () => {
+  assert.ok(rendererCode.includes("stopRecordBtn.addEventListener('click'"));
+});
+
+test('desktopCapturer getSources call exists', () => {
+  assert.ok(rendererCode.includes('getScreenSources'));
+  assert.ok(rendererCode.includes('types:'));
+});
+
+test('screen/window source type parameter passed correctly', () => {
+  assert.ok(rendererCode.includes("startRecording('screen')"));
+  assert.ok(rendererCode.includes("startRecording('window'") || rendererCode.includes('showWindowPicker'));
+});
+
+test('getUserMedia call for screen capture exists', () => {
+  assert.ok(rendererCode.includes('navigator.mediaDevices.getUserMedia'));
+  assert.ok(rendererCode.includes('chromeMediaSource'));
+  assert.ok(rendererCode.includes('chromeMediaSourceId'));
+});
+
+test('system audio capture attempt exists', () => {
+  assert.ok(rendererCode.includes('systemAudioStream'));
+  assert.ok(rendererCode.includes("chromeMediaSource: 'desktop'"));
+});
+
+test('microphone capture attempt exists', () => {
+  assert.ok(rendererCode.includes('micStream'));
+  assert.ok(rendererCode.includes('audio: true'));
+});
+
+test('webcam capture attempt exists', () => {
+  assert.ok(rendererCode.includes('webcamStream'));
+  assert.ok(rendererCode.includes('ideal: 640'));
+  assert.ok(rendererCode.includes('ideal: 360'));
+});
+
+test('webcam overlay srcObject set correctly', () => {
+  assert.ok(rendererCode.includes('webcamOverlay.srcObject'));
+  assert.ok(rendererCode.includes('webcamOverlay.play()'));
+});
+
+test('canvas compositing for screen + webcam exists', () => {
+  assert.ok(rendererCode.includes("document.createElement('canvas')"));
+  assert.ok(rendererCode.includes("getContext('2d')"));
+  assert.ok(rendererCode.includes('canvas.width'));
+  assert.ok(rendererCode.includes('canvas.height'));
+});
+
+test('canvas dimensions set from screen stream', () => {
+  assert.ok(rendererCode.includes('screenTrack.getSettings()'));
+  assert.ok(rendererCode.includes('screenSettings.width'));
+  assert.ok(rendererCode.includes('screenSettings.height'));
+});
+
+test('video elements created for compositing', () => {
+  assert.ok(rendererCode.includes('screenVideo'));
+  assert.ok(rendererCode.includes('webcamVideo'));
+  assert.ok(rendererCode.includes('screenVideo.srcObject'));
+});
+
+test('drawFrame function exists for canvas rendering', () => {
+  assert.ok(rendererCode.includes('function drawFrame()'));
+  assert.ok(rendererCode.includes('ctx.drawImage'));
+  assert.ok(rendererCode.includes('requestAnimationFrame(drawFrame)'));
+});
+
+test('webcam PIP rendering logic exists', () => {
+  assert.ok(rendererCode.includes('canvas.width * 0.2'));
+  assert.ok(rendererCode.includes('webcamWidth * 9') && rendererCode.includes('/ 16'));
+  assert.ok(rendererCode.includes('ctx.strokeRect'));
+});
+
+test('canvas stream capture exists', () => {
+  assert.ok(rendererCode.includes('canvas.captureStream'));
+  assert.ok(rendererCode.includes('30')); // 30 fps
+});
+
+test('MediaStream combination logic exists', () => {
+  assert.ok(rendererCode.includes('new MediaStream()'));
+  assert.ok(rendererCode.includes('getVideoTracks()'));
+  assert.ok(rendererCode.includes('getAudioTracks()'));
+  assert.ok(rendererCode.includes('addTrack'));
+});
+
+test('MediaRecorder initialization exists', () => {
+  assert.ok(rendererCode.includes('new MediaRecorder'));
+  assert.ok(rendererCode.includes('video/webm'));
+  assert.ok(rendererCode.includes('vp9'));
+});
+
+test('MediaRecorder ondataavailable handler exists', () => {
+  assert.ok(rendererCode.includes('mediaRecorder.ondataavailable'));
+  assert.ok(rendererCode.includes('recordedChunks.push'));
+});
+
+test('MediaRecorder onstop handler exists', () => {
+  assert.ok(rendererCode.includes('mediaRecorder.onstop'));
+});
+
+test('recording blob creation exists', () => {
+  assert.ok(rendererCode.includes('new Blob(recordedChunks'));
+  assert.ok(rendererCode.includes('blob.arrayBuffer()'));
+});
+
+test('saveRecording IPC call exists', () => {
+  assert.ok(rendererCode.includes('saveRecording'));
+  assert.ok(rendererCode.includes('screen-recording-'));
+  assert.ok(rendererCode.includes('.webm'));
+});
+
+test('recording cleanup on stop exists', () => {
+  const stopHandlerMatch = rendererCode.match(/mediaRecorder\.onstop[\s\S]*?recordScreenBtn\.disabled = false/);
+  assert.ok(stopHandlerMatch, 'Expected cleanup logic in onstop handler');
+});
+
+test('stream track stopping exists', () => {
+  assert.ok(rendererCode.includes('getTracks().forEach(track => track.stop())'));
+});
+
+test('webcam overlay hidden after recording', () => {
+  assert.ok(rendererCode.includes("webcamOverlay.style.display = 'none'"));
+  assert.ok(rendererCode.includes('webcamOverlay.srcObject = null'));
+});
+
+test('recording UI state updates exist', () => {
+  assert.ok(rendererCode.includes('recordScreenBtn.disabled = true'));
+  assert.ok(rendererCode.includes('recordWindowBtn.disabled = true'));
+  assert.ok(rendererCode.includes('stopRecordBtn.disabled = false'));
+});
+
+test('webcam drag state variables exist', () => {
+  assert.ok(rendererCode.includes('let webcamDragState'));
+});
+
+test('webcam mousedown handler exists', () => {
+  assert.ok(rendererCode.includes("webcamOverlay.addEventListener('mousedown'"));
+});
+
+test('handleWebcamDrag function exists', () => {
+  assert.ok(rendererCode.includes('function handleWebcamDrag('));
+});
+
+test('handleWebcamDragEnd function exists', () => {
+  assert.ok(rendererCode.includes('function handleWebcamDragEnd('));
+});
+
+test('webcam position clamping exists', () => {
+  assert.ok(rendererCode.includes('Math.max') && rendererCode.includes('Math.min'));
+  assert.ok(rendererCode.includes('clampedLeft') || rendererCode.includes('clampedTop'));
+});
+
+test('save-recording IPC handler registered in main.js', () => {
+  assert.ok(mainCode.includes("ipcMain.handle('save-recording'"));
+});
+
+test('save-recording writes to temp directory', () => {
+  assert.ok(mainCode.includes('os.tmpdir()'));
+  assert.ok(mainCode.includes('fs.writeFileSync'));
+  assert.ok(mainCode.includes('Buffer.from(buffer)'));
+});
+
+test('getScreenSources exposed in preload.js', () => {
+  const preloadCode = fs.readFileSync(preloadPath, 'utf8');
+  assert.ok(preloadCode.includes('getScreenSources'));
+  assert.ok(preloadCode.includes('get-screen-sources'));
+});
+
+test('get-screen-sources IPC handler registered in main.js', () => {
+  assert.ok(mainCode.includes("ipcMain.handle('get-screen-sources'"));
+  assert.ok(mainCode.includes('desktopCapturer.getSources'));
+});
+
+test('media permissions handler exists', () => {
+  assert.ok(mainCode.includes('setPermissionRequestHandler'));
+  assert.ok(mainCode.includes("permission === 'media'"));
+});
+
+test('display media request handler exists', () => {
+  assert.ok(mainCode.includes('setDisplayMediaRequestHandler'));
+});
+
+test('saveRecording exposed in preload.js', () => {
+  const preloadCode = fs.readFileSync(preloadPath, 'utf8');
+  assert.ok(preloadCode.includes('saveRecording'));
+});
+
+test('webcam overlay CSS styling exists', () => {
+  const stylesCode = fs.readFileSync(stylesPath, 'utf8');
+  assert.ok(stylesCode.includes('.webcam-overlay'));
+  assert.ok(stylesCode.includes('position: absolute'));
+  assert.ok(stylesCode.includes('cursor: grab'));
+});
+
+test('addVideoToTimeline called after recording', () => {
+  const stopHandlerMatch = rendererCode.match(/mediaRecorder\.onstop[\s\S]*?addVideoToTimeline/);
+  assert.ok(stopHandlerMatch, 'Expected addVideoToTimeline call in onstop handler');
+});
+
+test('recording adds to timeline end with auto-zoom', () => {
+  // addVideoToTimeline already handles this with autoZoomToFit()
+  assert.ok(rendererCode.includes('autoZoomToFit()'));
+});
+
+test('error handling exists for recording failures', () => {
+  assert.ok(rendererCode.includes('catch (error)') || rendererCode.includes('catch (err)'));
+  assert.ok(rendererCode.includes('Recording failed'));
+});
+
+test('recording indicator element exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="recordingIndicator"'));
+  assert.ok(indexHtml.includes('recording-indicator'));
+});
+
+test('recording time display element exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="recordingTime"'));
+});
+
+test('recording timer functions exist', () => {
+  assert.ok(rendererCode.includes('function startRecordingTimer('));
+  assert.ok(rendererCode.includes('function stopRecordingTimer('));
+  assert.ok(rendererCode.includes('function formatRecordingTime('));
+});
+
+test('recording timer starts when recording begins', () => {
+  assert.ok(rendererCode.includes('startRecordingTimer()'));
+});
+
+test('recording timer stops when recording ends', () => {
+  const stopHandlerMatch = rendererCode.match(/mediaRecorder\.onstop[\s\S]*?stopRecordingTimer/);
+  assert.ok(stopHandlerMatch, 'Expected stopRecordingTimer call in onstop handler');
+});
+
+test('recording timer updates every second', () => {
+  assert.ok(rendererCode.includes('setInterval'));
+  assert.ok(rendererCode.includes('1000'));
+});
+
+test('window picker modal element exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="windowPickerModal"'));
+  assert.ok(indexHtml.includes('modal'));
+});
+
+test('window picker grid element exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="windowPickerGrid"'));
+  assert.ok(indexHtml.includes('window-picker-grid'));
+});
+
+test('window picker cancel button exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="cancelWindowPicker"'));
+});
+
+test('showWindowPicker function exists', () => {
+  assert.ok(rendererCode.includes('async function showWindowPicker('));
+});
+
+test('window picker shows thumbnails for selection', () => {
+  assert.ok(rendererCode.includes('thumbnail.toDataURL()'));
+  assert.ok(rendererCode.includes('window-option'));
+});
+
+test('window recording uses picker modal', () => {
+  assert.ok(rendererCode.includes('showWindowPicker()'));
+  assert.ok(rendererCode.includes("recordWindowBtn.addEventListener('click'"));
+});
+
+test('screen recording auto-selects first screen', () => {
+  assert.ok(rendererCode.includes('source = sources[0]'));
+});
+
+test('recording indicator CSS exists', () => {
+  const stylesCode = fs.readFileSync(stylesPath, 'utf8');
+  assert.ok(stylesCode.includes('.recording-indicator'));
+  assert.ok(stylesCode.includes('position: absolute'));
+});
+
+test('recording dot animation CSS exists', () => {
+  const stylesCode = fs.readFileSync(stylesPath, 'utf8');
+  assert.ok(stylesCode.includes('.recording-dot'));
+  assert.ok(stylesCode.includes('@keyframes pulse'));
+});
+
+test('modal CSS exists', () => {
+  const stylesCode = fs.readFileSync(stylesPath, 'utf8');
+  assert.ok(stylesCode.includes('.modal'));
+  assert.ok(stylesCode.includes('z-index: 1000'));
+});
+
+test('window option CSS exists', () => {
+  const stylesCode = fs.readFileSync(stylesPath, 'utf8');
+  assert.ok(stylesCode.includes('.window-option'));
+  assert.ok(stylesCode.includes('cursor: pointer'));
 });
 
 // Summary
