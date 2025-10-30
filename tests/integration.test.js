@@ -543,15 +543,14 @@ test('screen/window source type parameter passed correctly', () => {
   assert.ok(rendererCode.includes("startRecording('window'") || rendererCode.includes('showWindowPicker'));
 });
 
-test('getUserMedia call for screen capture exists', () => {
-  assert.ok(rendererCode.includes('navigator.mediaDevices.getUserMedia'));
-  assert.ok(rendererCode.includes('chromeMediaSource'));
-  assert.ok(rendererCode.includes('chromeMediaSourceId'));
+test('getDisplayMedia call for screen capture exists', () => {
+  assert.ok(rendererCode.includes('navigator.mediaDevices.getDisplayMedia'));
+  assert.ok(rendererCode.includes('screenStream'));
 });
 
-test('system audio capture attempt exists', () => {
-  assert.ok(rendererCode.includes('systemAudioStream'));
-  assert.ok(rendererCode.includes("chromeMediaSource: 'desktop'"));
+test('system audio capture via getDisplayMedia exists', () => {
+  // System audio is captured via getDisplayMedia with 'loopback' audio in main.js
+  assert.ok(mainCode.includes("audio: 'loopback'"));
 });
 
 test('microphone capture attempt exists', () => {
@@ -559,15 +558,16 @@ test('microphone capture attempt exists', () => {
   assert.ok(rendererCode.includes('audio: true'));
 });
 
-test('webcam capture attempt exists', () => {
-  assert.ok(rendererCode.includes('webcamStream'));
-  assert.ok(rendererCode.includes('ideal: 640'));
-  assert.ok(rendererCode.includes('ideal: 360'));
+test('webcam capture in overlay window exists', () => {
+  // Webcam is initialized in the overlay window via main.js
+  assert.ok(mainCode.includes('getUserMedia'));
+  assert.ok(mainCode.includes('ideal: 640'));
+  assert.ok(mainCode.includes('ideal: 360'));
 });
 
-test('webcam overlay srcObject set correctly', () => {
-  assert.ok(rendererCode.includes('webcamOverlay.srcObject'));
-  assert.ok(rendererCode.includes('webcamOverlay.play()'));
+test('webcam overlay srcObject set in overlay window', () => {
+  // Webcam srcObject is set in the overlay window via executeJavaScript in main.js
+  assert.ok(mainCode.includes('webcam.srcObject = stream'));
 });
 
 test('canvas compositing for screen + webcam exists', () => {
@@ -577,33 +577,37 @@ test('canvas compositing for screen + webcam exists', () => {
   assert.ok(rendererCode.includes('canvas.height'));
 });
 
-test('canvas dimensions set from screen stream', () => {
-  assert.ok(rendererCode.includes('screenTrack.getSettings()'));
-  assert.ok(rendererCode.includes('screenSettings.width'));
-  assert.ok(rendererCode.includes('screenSettings.height'));
+test('overlay window dimensions configured', () => {
+  // Overlay window dimensions are set in main.js when creating the window
+  assert.ok(mainCode.includes('width: 340'));
+  assert.ok(mainCode.includes('height: 250'));
 });
 
-test('video elements created for compositing', () => {
-  assert.ok(rendererCode.includes('screenVideo'));
-  assert.ok(rendererCode.includes('webcamVideo'));
-  assert.ok(rendererCode.includes('screenVideo.srcObject'));
+test('overlay window contains video element', () => {
+  // Overlay window has webcam video element, checked via recording-overlay.html
+  const overlayHtml = fs.readFileSync(path.join(__dirname, '..', 'recording-overlay.html'), 'utf8');
+  assert.ok(overlayHtml.includes('id="webcam"'));
+  assert.ok(overlayHtml.includes('<video'));
 });
 
-test('drawFrame function exists for canvas rendering', () => {
-  assert.ok(rendererCode.includes('function drawFrame()'));
-  assert.ok(rendererCode.includes('ctx.drawImage'));
-  assert.ok(rendererCode.includes('requestAnimationFrame(drawFrame)'));
+test('recording overlay window created on recording start', () => {
+  // Overlay window is created via IPC when recording starts
+  assert.ok(mainCode.includes("ipcMain.on('show-recording-overlay'"));
+  assert.ok(mainCode.includes('recordingOverlay = new BrowserWindow'));
 });
 
-test('webcam PIP rendering logic exists', () => {
-  assert.ok(rendererCode.includes('canvas.width * 0.2'));
-  assert.ok(rendererCode.includes('webcamWidth * 9') && rendererCode.includes('/ 16'));
-  assert.ok(rendererCode.includes('ctx.strokeRect'));
+test('overlay window positioned in top-right corner', () => {
+  // Overlay window is positioned in top-right via setPosition in main.js
+  assert.ok(mainCode.includes('screenWidth - 360'));
+  assert.ok(mainCode.includes('setPosition'));
 });
 
-test('canvas stream capture exists', () => {
-  assert.ok(rendererCode.includes('canvas.captureStream'));
-  assert.ok(rendererCode.includes('30')); // 30 fps
+test('overlay window captured naturally by screen recording', () => {
+  // Overlay window is NOT protected, so it's captured by screen recording
+  // We verify the comment that explains we do NOT use setContentProtection
+  assert.ok(mainCode.includes('show-recording-overlay'));
+  assert.ok(mainCode.includes('NOTE: We WANT this window to be captured'));
+  assert.ok(mainCode.includes('So we do NOT use setContentProtection(true)'));
 });
 
 test('MediaStream combination logic exists', () => {
@@ -648,9 +652,11 @@ test('stream track stopping exists', () => {
   assert.ok(rendererCode.includes('getTracks().forEach(track => track.stop())'));
 });
 
-test('webcam overlay hidden after recording', () => {
-  assert.ok(rendererCode.includes("webcamOverlay.style.display = 'none'"));
-  assert.ok(rendererCode.includes('webcamOverlay.srcObject = null'));
+test('overlay window hidden after recording', () => {
+  // Overlay window is closed via IPC after recording stops
+  assert.ok(rendererCode.includes('hideRecordingOverlay'));
+  assert.ok(mainCode.includes("ipcMain.on('hide-recording-overlay'"));
+  assert.ok(mainCode.includes('recordingOverlay.close()'));
 });
 
 test('recording UI state updates exist', () => {
@@ -703,7 +709,7 @@ test('get-screen-sources IPC handler registered in main.js', () => {
 
 test('media permissions handler exists', () => {
   assert.ok(mainCode.includes('setPermissionRequestHandler'));
-  assert.ok(mainCode.includes("permission === 'media'"));
+  assert.ok(mainCode.includes('allowedPermissions') || mainCode.includes("'media'"));
 });
 
 test('display media request handler exists', () => {

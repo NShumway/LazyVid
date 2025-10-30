@@ -1,12 +1,8 @@
 # LazyVid
 
-[![Build and Validate](https://github.com/YOUR_USERNAME/LazyVid/actions/workflows/build.yml/badge.svg)](https://github.com/YOUR_USERNAME/LazyVid/actions/workflows/build.yml)
+A desktop video editor built with Electron featuring screen recording with webcam overlay, timeline editing, and video export.
 
-A desktop video editor built with Electron for screen recording and video editing.
-
-## Tech Stack Validation
-
-This thin-slice MVP proves the following technologies work together as a complete, packaged application:
+## Tech Stack
 
 - **Electron 28** - Desktop application framework
 - **fluent-ffmpeg** - Video processing and export
@@ -15,14 +11,31 @@ This thin-slice MVP proves the following technologies work together as a complet
 
 ## Features
 
-This MVP validates the complete workflow:
+### ✅ Screen Recording
+- **Full screen recording** with automatic source selection
+- **Window recording** with picker modal showing thumbnails
+- **Webcam overlay** - Picture-in-picture webcam feed in top-right corner
+- **Recording indicator** - Red timer with pulsing dot, draggable overlay window
+- **Audio capture** - System audio (via getDisplayMedia) + microphone
+- **Stop button** - Integrated in the overlay window for easy access
+- Recordings automatically added to timeline with correct duration
 
-1. ✅ Desktop app launches successfully
-2. ✅ Video import via file picker (MP4, MOV, WebM)
-3. ✅ HTML5 video preview with native playback controls
-4. ✅ FFmpeg integration for video re-encoding
-5. ✅ Export to MP4 with progress tracking
-6. ✅ Packaged as standalone Windows executable
+### ✅ Video Import/Export
+- Drag & drop video files (MP4, MOV, WebM)
+- File picker import
+- Export timeline to MP4 with progress tracking
+- Handles multiple clips with concat demuxer
+
+### ✅ Timeline Editing
+- **Visual timeline** with zoom controls (mouse wheel supported)
+- **Clip trimming** - Drag trim handles to set in/out points
+- **Split clips** at playhead position
+- **Delete clips** from timeline
+- **Reorder clips** via drag and drop
+- **Thumbnails** - Auto-generated from first frame
+- **Metadata display** - Resolution, file size, duration
+- **Auto-zoom** to fit all content when adding clips
+- **Snap guides** - Visual indicators when clips snap together
 
 ## Prerequisites
 
@@ -43,7 +56,9 @@ Run the app in development mode:
 npm start
 ```
 
-## Building
+## Building & Publishing
+
+### Development Build
 
 Create a distributable Windows application:
 
@@ -52,6 +67,69 @@ npm run dist
 ```
 
 The packaged app will be in `dist/win-unpacked/LazyVid.exe`
+
+### Building for Distribution
+
+**IMPORTANT:** Due to Windows permission restrictions, the build process may fail if you don't have administrator privileges or Developer Mode enabled.
+
+#### Prerequisites for Building:
+
+1. **Enable Developer Mode** (Recommended - No admin required):
+   - Open Windows Settings
+   - Go to "Privacy & Security" > "For developers"
+   - Enable "Developer Mode"
+   - This allows creating symbolic links without admin privileges
+
+   OR
+
+2. **Run as Administrator**:
+   - Open PowerShell or Terminal as Administrator
+   - Navigate to project directory
+   - Run `npm run dist`
+
+#### Build Configuration
+
+The app is configured with these settings in `package.json`:
+- `target: "dir"` - Creates unpacked directory (no installer)
+- `sign: null` - No code signing
+- `signDlls: false` - Don't sign DLL files
+- `signAndEditExecutable: false` - Skip executable signing/editing
+
+#### Common Build Issues:
+
+**Error: "Cannot create symbolic link : A required privilege is not held"**
+- **Solution:** Enable Developer Mode (see above) or run as Administrator
+
+**Error: "winCodeSign extraction failed"**
+- **Solution:** This is caused by symbolic link permissions. Enable Developer Mode fixes this.
+
+#### Build Output:
+
+```
+dist/
+└── win-unpacked/
+    ├── LazyVid.exe (169 MB)
+    ├── resources/
+    │   └── app.asar (12.5 MB - Your app code + dependencies)
+    ├── node_modules/ (After running copy command below)
+    └── [Electron runtime files...]
+```
+
+#### Post-Build Step (IMPORTANT):
+
+After building, you must copy node_modules to the distribution folder for FFmpeg to work:
+
+```powershell
+npm run dist
+Copy-Item -Path "node_modules" -Destination "dist\win-unpacked\resources\app\" -Recurse -Force
+```
+
+Or use the automated command (already configured):
+```powershell
+powershell -Command "cd 'D:\code\Repos\Gauntlet\LazyVid'; Copy-Item -Path 'node_modules' -Destination 'dist\win-unpacked\resources\app\' -Recurse -Force"
+```
+
+This copies the FFmpeg binaries and fluent-ffmpeg dependencies needed at runtime.
 
 ## Validation
 
