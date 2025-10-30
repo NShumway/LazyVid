@@ -6,7 +6,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportTimeline: (clips, outputPath, resolution) => ipcRenderer.invoke('export-timeline', clips, outputPath, resolution),
   saveDialog: (defaultName) => ipcRenderer.invoke('save-dialog', defaultName),
   getFileStats: (filePath) => ipcRenderer.invoke('get-file-stats', filePath),
-  onExportProgress: (callback) => ipcRenderer.on('export-progress', (event, percent) => callback(percent)),
+  onExportProgress: (callback) => {
+    // Remove any existing listeners first to prevent buildup
+    ipcRenderer.removeAllListeners('export-progress');
+    ipcRenderer.on('export-progress', (event, percent) => callback(percent));
+  },
+  removeExportProgressListeners: () => ipcRenderer.removeAllListeners('export-progress'),
   getScreenSources: (options) => ipcRenderer.invoke('get-screen-sources', options),
   setSelectedSource: (sourceId) => ipcRenderer.send('set-selected-source', sourceId),
   saveRecording: (buffer, fileName) => ipcRenderer.invoke('save-recording', buffer, fileName),

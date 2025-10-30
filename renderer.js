@@ -1308,48 +1308,95 @@ function showExportResolutionModal() {
 }
 
 async function performExport(resolution) {
+  const outputPath = await window.electronAPI.saveDialog('exported-video.mp4');
+
+  if (!outputPath) {
+    return;
+  }
+
+  // Disable buttons during export
+  exportBtn.disabled = true;
+  importBtn.disabled = true;
+
+  // Show progress bar, hide time display
+  timeDisplay.style.display = 'none';
+  progressBar.style.display = 'block';
+  progressFill.style.width = '0%';
+  progressText.textContent = '0%';
+
+  updateStatus('Exporting video...');
+  console.log('[Export] Starting export, progress bar visible');
+
+  // Set up progress listener (this automatically removes old listeners)
+  window.electronAPI.onExportProgress((percent) => {
+    const rounded = Math.round(percent);
+    progressFill.style.width = `${rounded}%`;
+    progressText.textContent = `${rounded}%`;
+  });
+
   try {
-    const outputPath = await window.electronAPI.saveDialog('exported-video.mp4');
-
-    if (!outputPath) {
-      return;
-    }
-
-    exportBtn.disabled = true;
-    importBtn.disabled = true;
-    timeDisplay.style.display = 'none';
-    progressBar.style.display = 'block';
-    updateStatus('Exporting video...');
-
-    window.electronAPI.onExportProgress((percent) => {
-      const rounded = Math.round(percent);
-      progressFill.style.width = `${rounded}%`;
-      progressText.textContent = `${rounded}%`;
-    });
-
     const result = await window.electronAPI.exportTimeline(timelineClips, outputPath, resolution);
 
-    // Ensure progress shows 100%
+    console.log('[Export] Export completed, result:', JSON.stringify(result, null, 2));
+    // Show 100% completion
     progressFill.style.width = '100%';
     progressText.textContent = '100%';
 
     if (result.success) {
       updateStatus(`Video exported successfully to: ${outputPath.split('\\').pop()}`);
+
+      // Wait 5 seconds with progress bar visible at 100%
+      console.log('[Export] Waiting 5 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      console.log('[Export] 5 seconds complete');
+    } else {
+      console.log('[Export] Export result.success is false, not waiting');
+      console.log('[Export] Result error:', result.error);
+
+      // Show user-friendly error message
+      const errorMsg = result.error || 'Unknown error occurred';
+      updateStatus(`Export failed: ${errorMsg}`, true);
+      alert(`Export Failed\n\nThe video export failed with the following error:\n\n${errorMsg}\n\nPlease check the console (Ctrl+Shift+I) for more details.`);
     }
 
-    // Wait 5 seconds before hiding the progress bar
-    await new Promise(resolve => setTimeout(resolve, 5000));
-
   } catch (error) {
-    updateStatus(`Export failed: ${error.message || error.error}`, true);
-  } finally {
-    exportBtn.disabled = false;
-    importBtn.disabled = false;
-    timeDisplay.style.display = 'block';
-    progressBar.style.display = 'none';
-    progressFill.style.width = '0%';
-    progressText.textContent = '0%';
+    console.error('[Export] Export failed with exception');
+    console.error('[Export] Error object:', error);
+    console.error('[Export] Error message:', error.message);
+    console.error('[Export] Error stack:', error.stack);
+    // Try to extract the actual error from Electron IPC
+    if (error.message && error.message.includes('[object Object]')) {
+      console.error('[Export] Raw error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+
+    // Show user-friendly error message
+    let userMessage = 'An unexpected error occurred during export.';
+    if (error.message) {
+      if (error.message.includes('ENOENT')) {
+        userMessage = 'FFmpeg executable not found. The application may not be installed correctly.';
+      } else if (error.message.includes('EACCES')) {
+        userMessage = 'Permission denied. Please check file permissions and try again.';
+      } else if (error.message.includes('ENOSPC')) {
+        userMessage = 'Not enough disk space to complete the export.';
+      } else {
+        userMessage = error.message;
+      }
+    }
+
+    updateStatus(`Export failed: ${userMessage}`, true);
+    alert(`Export Failed\n\n${userMessage}\n\nPlease check the console (Ctrl+Shift+I) for technical details.`);
   }
+
+  // Clean up
+  console.log('[Export] Cleaning up UI');
+  window.electronAPI.removeExportProgressListeners();
+  exportBtn.disabled = false;
+  importBtn.disabled = false;
+  progressBar.style.display = 'none';
+  progressFill.style.width = '0%';
+  progressText.textContent = '0%';
+  timeDisplay.style.display = 'block';
+  console.log('[Export] Cleanup complete');
 }
 
 async function startRecording(sourceType, selectedSource = null) {

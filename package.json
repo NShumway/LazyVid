@@ -45,6 +45,9 @@
       "styles.css",
       "node_modules/**/*"
     ],
+    "asarUnpack": [
+      "node_modules/@ffmpeg-installer/**/*"
+    ],
     "extraMetadata": {
       "main": "main.js"
     }

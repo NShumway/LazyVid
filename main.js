@@ -2,8 +2,16 @@ const { app, BrowserWindow, ipcMain, dialog, desktopCapturer } = require('electr
 const path = require('path');
 const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+let ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
+// Fix path for asar unpacked files
+// If the path points inside app.asar, replace with app.asar.unpacked
+if (ffmpegPath.includes('app.asar')) {
+  ffmpegPath = ffmpegPath.replace('app.asar', 'app.asar.unpacked');
+}
+
+console.log('[Main] FFmpeg path:', ffmpegPath);
+console.log('[Main] FFmpeg exists:', fs.existsSync(ffmpegPath));
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 let mainWindow;
@@ -281,8 +289,16 @@ ipcMain.handle('export-timeline', async (event, clips, outputPath, resolution = 
       }
 
       command
-        .on('end', () => resolve({ success: true }))
-        .on('error', (err) => reject({ success: false, error: err.message }))
+        .on('end', () => {
+          console.log('[export-timeline] Single clip export completed successfully');
+          resolve({ success: true });
+        })
+        .on('error', (err) => {
+          console.error('[export-timeline] Single clip export error:', err);
+          console.error('[export-timeline] Error message:', err.message);
+          console.error('[export-timeline] Error stack:', err.stack);
+          reject({ success: false, error: err.message });
+        })
         .on('progress', (progress) => {
           mainWindow.webContents.send('export-progress', progress.percent || 0);
         })
