@@ -1,18 +1,38 @@
 const { app, BrowserWindow, ipcMain, dialog, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const ffmpeg = require('fluent-ffmpeg');
-let ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
-// Fix path for asar unpacked files
-// If the path points inside app.asar, replace with app.asar.unpacked
-if (ffmpegPath.includes('app.asar')) {
-  ffmpegPath = ffmpegPath.replace('app.asar', 'app.asar.unpacked');
+// FFmpeg will be initialized asynchronously after app starts
+let ffmpeg = null;
+let ffmpegInitPromise = null;
+
+// Async FFmpeg initialization - called after window creation
+function initializeFfmpeg() {
+  // Return existing promise if already initializing
+  if (ffmpegInitPromise) return ffmpegInitPromise;
+
+  ffmpegInitPromise = new Promise((resolve) => {
+    // Use setImmediate to run on next tick, not blocking current execution
+    setImmediate(() => {
+      console.log('[Main] Starting FFmpeg initialization...');
+      ffmpeg = require('fluent-ffmpeg');
+      let ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+
+      // Fix path for asar unpacked files
+      if (ffmpegPath.includes('app.asar')) {
+        ffmpegPath = ffmpegPath.replace('app.asar', 'app.asar.unpacked');
+      }
+
+      console.log('[Main] FFmpeg path:', ffmpegPath);
+      console.log('[Main] FFmpeg exists:', fs.existsSync(ffmpegPath));
+      ffmpeg.setFfmpegPath(ffmpegPath);
+      console.log('[Main] FFmpeg initialized');
+      resolve();
+    });
+  });
+
+  return ffmpegInitPromise;
 }
-
-console.log('[Main] FFmpeg path:', ffmpegPath);
-console.log('[Main] FFmpeg exists:', fs.existsSync(ffmpegPath));
-ffmpeg.setFfmpegPath(ffmpegPath);
 
 let mainWindow;
 let recordingOverlay = null;
@@ -148,7 +168,12 @@ function createWindow() {
   // mainWindow.webContents.openDevTools();
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  // Initialize FFmpeg asynchronously in the background
+  // This won't block the window from appearing
+  initializeFfmpeg();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -177,6 +202,9 @@ ipcMain.handle('select-video', async () => {
 });
 
 ipcMain.handle('export-video', async (event, inputPath, outputPath) => {
+  // Ensure FFmpeg is initialized before using it
+  await initializeFfmpeg();
+
   return new Promise((resolve, reject) => {
     ffmpeg(inputPath)
       .output(outputPath)
@@ -237,6 +265,9 @@ ipcMain.handle('save-recording', async (event, buffer, fileName) => {
 });
 
 ipcMain.handle('export-timeline', async (event, clips, outputPath, resolution = 'source') => {
+  // Ensure FFmpeg is initialized before using it
+  await initializeFfmpeg();
+
   return new Promise((resolve, reject) => {
     if (clips.length === 0) {
       reject({ success: false, error: 'No clips to export' });
