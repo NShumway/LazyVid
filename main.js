@@ -228,23 +228,47 @@ ipcMain.handle('save-recording', async (event, buffer, fileName) => {
   }
 });
 
-ipcMain.handle('export-timeline', async (event, clips, outputPath) => {
+ipcMain.handle('export-timeline', async (event, clips, outputPath, resolution = 'source') => {
   return new Promise((resolve, reject) => {
     if (clips.length === 0) {
       reject({ success: false, error: 'No clips to export' });
       return;
     }
 
+    // Determine target resolution
+    let targetWidth, targetHeight;
+    if (resolution === '1080p') {
+      targetWidth = 1920;
+      targetHeight = 1080;
+    } else if (resolution === '720p') {
+      targetWidth = 1280;
+      targetHeight = 720;
+    } else {
+      // Source resolution - find the largest resolution among clips
+      targetWidth = Math.max(...clips.map(c => c.resolution?.width || 1920));
+      targetHeight = Math.max(...clips.map(c => c.resolution?.height || 1080));
+    }
+
+    // Build scale and pad filter for letterboxing/pillarboxing
+    const scaleFilter = `scale=w=${targetWidth}:h=${targetHeight}:force_original_aspect_ratio=decrease,pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2:black`;
+
     if (clips.length === 1) {
       const clip = clips[0];
       const trimDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
 
-      ffmpeg(clip.path)
+      let command = ffmpeg(clip.path)
         .setStartTime(clip.trimStart || 0)
         .setDuration(trimDuration)
         .output(outputPath)
         .videoCodec('libx264')
-        .audioCodec('aac')
+        .audioCodec('aac');
+
+      // Apply scaling/letterboxing if not source resolution or if resolution differs
+      if (resolution !== 'source' || (clip.resolution && (clip.resolution.width !== targetWidth || clip.resolution.height !== targetHeight))) {
+        command = command.videoFilters(scaleFilter);
+      }
+
+      command
         .on('end', () => resolve({ success: true }))
         .on('error', (err) => reject({ success: false, error: err.message }))
         .on('progress', (progress) => {
@@ -255,32 +279,101 @@ ipcMain.handle('export-timeline', async (event, clips, outputPath) => {
       const fs = require('fs');
       const os = require('os');
       const tempDir = os.tmpdir();
-      const listFile = path.join(tempDir, 'lazyvid-concat-list.txt');
 
-      const fileList = clips.map((clip, idx) => {
-        return `file '${clip.path.replace(/\\/g, '/')}'\ninpoint ${clip.trimStart || 0}\noutpoint ${clip.trimEnd || clip.duration}`;
-      }).join('\n');
+      // For multi-clip with scaling, we need to pre-process each clip
+      if (resolution !== 'source') {
+        const processedClips = [];
+        let processedCount = 0;
 
-      fs.writeFileSync(listFile, fileList);
+        const processClip = (clip, index) => {
+          return new Promise((resolveClip, rejectClip) => {
+            const tempFile = path.join(tempDir, `lazyvid-processed-${index}-${Date.now()}.mp4`);
+            const trimDuration = (clip.trimEnd || clip.duration) - (clip.trimStart || 0);
 
-      ffmpeg()
-        .input(listFile)
-        .inputOptions(['-f concat', '-safe 0'])
-        .output(outputPath)
-        .videoCodec('libx264')
-        .audioCodec('aac')
-        .on('end', () => {
-          fs.unlinkSync(listFile);
-          resolve({ success: true });
-        })
-        .on('error', (err) => {
-          if (fs.existsSync(listFile)) fs.unlinkSync(listFile);
-          reject({ success: false, error: err.message });
-        })
-        .on('progress', (progress) => {
-          mainWindow.webContents.send('export-progress', progress.percent || 0);
-        })
-        .run();
+            ffmpeg(clip.path)
+              .setStartTime(clip.trimStart || 0)
+              .setDuration(trimDuration)
+              .videoFilters(scaleFilter)
+              .videoCodec('libx264')
+              .audioCodec('aac')
+              .output(tempFile)
+              .on('end', () => {
+                processedClips.push({ path: tempFile, trimStart: 0, trimEnd: trimDuration });
+                processedCount++;
+                mainWindow.webContents.send('export-progress', (processedCount / clips.length) * 50); // First 50% for processing
+                resolveClip();
+              })
+              .on('error', rejectClip)
+              .run();
+          });
+        };
+
+        Promise.all(clips.map((clip, idx) => processClip(clip, idx)))
+          .then(() => {
+            // Concatenate processed clips
+            const listFile = path.join(tempDir, 'lazyvid-concat-list.txt');
+            const fileList = processedClips.map((clip) => {
+              return `file '${clip.path.replace(/\\/g, '/')}'`;
+            }).join('\n');
+
+            fs.writeFileSync(listFile, fileList);
+
+            ffmpeg()
+              .input(listFile)
+              .inputOptions(['-f concat', '-safe 0'])
+              .output(outputPath)
+              .videoCodec('libx264')
+              .audioCodec('aac')
+              .on('end', () => {
+                // Cleanup
+                fs.unlinkSync(listFile);
+                processedClips.forEach(pc => {
+                  if (fs.existsSync(pc.path)) fs.unlinkSync(pc.path);
+                });
+                resolve({ success: true });
+              })
+              .on('error', (err) => {
+                // Cleanup on error
+                if (fs.existsSync(listFile)) fs.unlinkSync(listFile);
+                processedClips.forEach(pc => {
+                  if (fs.existsSync(pc.path)) fs.unlinkSync(pc.path);
+                });
+                reject({ success: false, error: err.message });
+              })
+              .on('progress', (progress) => {
+                mainWindow.webContents.send('export-progress', 50 + (progress.percent || 0) / 2); // Second 50% for concat
+              })
+              .run();
+          })
+          .catch((err) => reject({ success: false, error: err.message }));
+      } else {
+        // Source resolution - use original concat approach
+        const listFile = path.join(tempDir, 'lazyvid-concat-list.txt');
+        const fileList = clips.map((clip) => {
+          return `file '${clip.path.replace(/\\/g, '/')}'\ninpoint ${clip.trimStart || 0}\noutpoint ${clip.trimEnd || clip.duration}`;
+        }).join('\n');
+
+        fs.writeFileSync(listFile, fileList);
+
+        ffmpeg()
+          .input(listFile)
+          .inputOptions(['-f concat', '-safe 0'])
+          .output(outputPath)
+          .videoCodec('libx264')
+          .audioCodec('aac')
+          .on('end', () => {
+            fs.unlinkSync(listFile);
+            resolve({ success: true });
+          })
+          .on('error', (err) => {
+            if (fs.existsSync(listFile)) fs.unlinkSync(listFile);
+            reject({ success: false, error: err.message });
+          })
+          .on('progress', (progress) => {
+            mainWindow.webContents.send('export-progress', progress.percent || 0);
+          })
+          .run();
+      }
     }
   });
 });

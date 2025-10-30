@@ -257,8 +257,8 @@ test('export-timeline IPC handler is registered', () => {
   assert.ok(mainCode.includes("ipcMain.handle('export-timeline'"));
 });
 
-test('export-timeline receives clips and outputPath parameters', () => {
-  assert.ok(mainCode.includes('async (event, clips, outputPath)'));
+test('export-timeline receives clips, outputPath, and resolution parameters', () => {
+  assert.ok(mainCode.includes('async (event, clips, outputPath, resolution'));
 });
 
 test('empty clips array validation exists', () => {
@@ -826,6 +826,95 @@ test('window option CSS exists', () => {
   const stylesCode = fs.readFileSync(stylesPath, 'utf8');
   assert.ok(stylesCode.includes('.window-option'));
   assert.ok(stylesCode.includes('cursor: pointer'));
+});
+
+console.log('\nF8: Export Resolution Modal - Code Structure');
+
+test('export resolution modal element exists in HTML', () => {
+  assert.ok(indexHtml.includes('id="exportResolutionModal"'));
+  assert.ok(indexHtml.includes('Export Video'));
+});
+
+test('resolution options exist in HTML', () => {
+  assert.ok(indexHtml.includes('name="resolution"'));
+  assert.ok(indexHtml.includes('value="source"'));
+  assert.ok(indexHtml.includes('value="1080p"'));
+  assert.ok(indexHtml.includes('value="720p"'));
+});
+
+test('export modal buttons exist', () => {
+  assert.ok(indexHtml.includes('id="confirmExport"'));
+  assert.ok(indexHtml.includes('id="cancelExport"'));
+});
+
+test('showExportResolutionModal function exists', () => {
+  assert.ok(rendererCode.includes('function showExportResolutionModal'));
+  assert.ok(rendererCode.includes('exportResolutionModal'));
+});
+
+test('performExport function exists', () => {
+  assert.ok(rendererCode.includes('function performExport'));
+  assert.ok(rendererCode.includes('resolution'));
+});
+
+test('export button shows modal', () => {
+  assert.ok(rendererCode.includes('showExportResolutionModal()'));
+});
+
+test('exportTimeline accepts resolution parameter', () => {
+  const preloadCode = fs.readFileSync(preloadPath, 'utf8');
+  assert.ok(preloadCode.includes('exportTimeline: (clips, outputPath, resolution)'));
+});
+
+test('export-timeline handler accepts resolution parameter', () => {
+  assert.ok(mainCode.includes("ipcMain.handle('export-timeline', async (event, clips, outputPath, resolution"));
+});
+
+test('resolution scaling logic exists for 1080p', () => {
+  assert.ok(mainCode.includes('1920'));
+  assert.ok(mainCode.includes('1080'));
+});
+
+test('resolution scaling logic exists for 720p', () => {
+  assert.ok(mainCode.includes('1280'));
+  assert.ok(mainCode.includes('720'));
+});
+
+test('source resolution detection logic exists', () => {
+  assert.ok(mainCode.includes('Math.max'));
+  assert.ok(mainCode.includes('resolution?.width'));
+  assert.ok(mainCode.includes('resolution?.height'));
+});
+
+test('FFmpeg scale filter exists for letterboxing', () => {
+  assert.ok(mainCode.includes('scale=w='));
+  assert.ok(mainCode.includes('force_original_aspect_ratio=decrease'));
+  assert.ok(mainCode.includes('pad='));
+});
+
+test('videoFilters applied for scaling', () => {
+  assert.ok(mainCode.includes('.videoFilters(scaleFilter)'));
+});
+
+test('multi-clip processing exists for non-source resolution', () => {
+  assert.ok(mainCode.includes('processClip'));
+  assert.ok(mainCode.includes('processedClips'));
+});
+
+test('temporary file cleanup exists for processed clips', () => {
+  assert.ok(mainCode.includes('processedClips.forEach'));
+  assert.ok(mainCode.includes('fs.unlinkSync(pc.path)'));
+});
+
+test('resolution modal CSS exists', () => {
+  const stylesCode = fs.readFileSync(stylesPath, 'utf8');
+  assert.ok(stylesCode.includes('.resolution-options'));
+  assert.ok(stylesCode.includes('.resolution-option'));
+});
+
+test('resolution label styling exists', () => {
+  const stylesCode = fs.readFileSync(stylesPath, 'utf8');
+  assert.ok(stylesCode.includes('.resolution-label'));
 });
 
 // Summary

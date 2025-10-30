@@ -46,6 +46,35 @@
           </div>
         </div>
       </div>
+
+      <!-- Export Resolution Modal -->
+      <div id="exportResolutionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <h2>Export Video</h2>
+          <p>Select output resolution:</p>
+          <div class="resolution-options">
+            <label class="resolution-option">
+              <input type="radio" name="resolution" value="source" checked>
+              <span class="resolution-label">Source Resolution</span>
+              <small>Use original clip resolutions</small>
+            </label>
+            <label class="resolution-option">
+              <input type="radio" name="resolution" value="1080p">
+              <span class="resolution-label">1080p (1920×1080)</span>
+              <small>Full HD</small>
+            </label>
+            <label class="resolution-option">
+              <input type="radio" name="resolution" value="720p">
+              <span class="resolution-label">720p (1280×720)</span>
+              <small>HD</small>
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button id="cancelExport" class="btn-secondary">Cancel</button>
+            <button id="confirmExport" class="btn-primary">Export</button>
+          </div>
+        </div>
+      </div>
     </main>
 
     <footer class="bottom-bar">

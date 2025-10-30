@@ -566,3 +566,50 @@ body {
   pointer-events: none;
   z-index: 3;
 }
+
+/* Export Resolution Modal */
+.resolution-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.resolution-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 2px solid #34495e;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resolution-option:hover {
+  background: rgba(52, 152, 219, 0.1);
+  border-color: #3498db;
+}
+
+.resolution-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.resolution-option input[type="radio"]:checked + .resolution-label {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.resolution-label {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.resolution-option small {
+  color: #7f8c8d;
+  font-size: 13px;
+  margin-left: auto;
+}

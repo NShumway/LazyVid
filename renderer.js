@@ -176,38 +176,8 @@ exportBtn.addEventListener('click', async () => {
     return;
   }
 
-  try {
-    const outputPath = await window.electronAPI.saveDialog('exported-video.mp4');
-
-    if (!outputPath) {
-      return;
-    }
-
-    exportBtn.disabled = true;
-    importBtn.disabled = true;
-    progressBar.style.display = 'block';
-    updateStatus('Exporting video...');
-
-    window.electronAPI.onExportProgress((percent) => {
-      const rounded = Math.round(percent);
-      progressFill.style.width = `${rounded}%`;
-      progressText.textContent = `${rounded}%`;
-    });
-
-    const result = await window.electronAPI.exportTimeline(timelineClips, outputPath);
-
-    if (result.success) {
-      updateStatus(`Video exported successfully to: ${outputPath.split('\\').pop()}`);
-    }
-  } catch (error) {
-    updateStatus(`Export failed: ${error.message || error.error}`, true);
-  } finally {
-    exportBtn.disabled = false;
-    importBtn.disabled = false;
-    progressBar.style.display = 'none';
-    progressFill.style.width = '0%';
-    progressText.textContent = '0%';
-  }
+  // Show export resolution modal
+  showExportResolutionModal();
 });
 
 // Timeline Foundation
@@ -1299,6 +1269,74 @@ async function showWindowPicker() {
       reject(error);
     }
   });
+}
+
+// Export Resolution Modal
+function showExportResolutionModal() {
+  return new Promise((resolve, reject) => {
+    const modal = document.getElementById('exportResolutionModal');
+    const confirmBtn = document.getElementById('confirmExport');
+    const cancelBtn = document.getElementById('cancelExport');
+
+    // Show modal
+    modal.style.display = 'flex';
+
+    const handleConfirm = async () => {
+      const selectedResolution = document.querySelector('input[name="resolution"]:checked').value;
+      modal.style.display = 'none';
+
+      // Remove event listeners
+      confirmBtn.removeEventListener('click', handleConfirm);
+      cancelBtn.removeEventListener('click', handleCancel);
+
+      // Start export process with selected resolution
+      await performExport(selectedResolution);
+    };
+
+    const handleCancel = () => {
+      modal.style.display = 'none';
+      confirmBtn.removeEventListener('click', handleConfirm);
+      cancelBtn.removeEventListener('click', handleCancel);
+    };
+
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', handleCancel);
+  });
+}
+
+async function performExport(resolution) {
+  try {
+    const outputPath = await window.electronAPI.saveDialog('exported-video.mp4');
+
+    if (!outputPath) {
+      return;
+    }
+
+    exportBtn.disabled = true;
+    importBtn.disabled = true;
+    progressBar.style.display = 'block';
+    updateStatus('Exporting video...');
+
+    window.electronAPI.onExportProgress((percent) => {
+      const rounded = Math.round(percent);
+      progressFill.style.width = `${rounded}%`;
+      progressText.textContent = `${rounded}%`;
+    });
+
+    const result = await window.electronAPI.exportTimeline(timelineClips, outputPath, resolution);
+
+    if (result.success) {
+      updateStatus(`Video exported successfully to: ${outputPath.split('\\').pop()}`);
+    }
+  } catch (error) {
+    updateStatus(`Export failed: ${error.message || error.error}`, true);
+  } finally {
+    exportBtn.disabled = false;
+    importBtn.disabled = false;
+    progressBar.style.display = 'none';
+    progressFill.style.width = '0%';
+    progressText.textContent = '0%';
+  }
 }
 
 async function startRecording(sourceType, selectedSource = null) {
