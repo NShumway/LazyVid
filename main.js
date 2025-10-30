@@ -235,6 +235,9 @@ ipcMain.handle('export-timeline', async (event, clips, outputPath, resolution = 
       return;
     }
 
+    console.log('[export-timeline] Resolution mode:', resolution);
+    console.log('[export-timeline] Clips:', clips.map(c => ({ path: c.path, resolution: c.resolution })));
+
     // Determine target resolution
     let targetWidth, targetHeight;
     if (resolution === '1080p') {
@@ -248,6 +251,8 @@ ipcMain.handle('export-timeline', async (event, clips, outputPath, resolution = 
       targetWidth = Math.max(...clips.map(c => c.resolution?.width || 1920));
       targetHeight = Math.max(...clips.map(c => c.resolution?.height || 1080));
     }
+
+    console.log('[export-timeline] Target resolution:', targetWidth, 'x', targetHeight);
 
     // Build scale and pad filter for letterboxing/pillarboxing
     const scaleFilter = `scale=w=${targetWidth}:h=${targetHeight}:force_original_aspect_ratio=decrease,pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2:black`;
@@ -263,8 +268,15 @@ ipcMain.handle('export-timeline', async (event, clips, outputPath, resolution = 
         .videoCodec('libx264')
         .audioCodec('aac');
 
-      // Apply scaling/letterboxing if not source resolution or if resolution differs
-      if (resolution !== 'source' || (clip.resolution && (clip.resolution.width !== targetWidth || clip.resolution.height !== targetHeight))) {
+      // Apply scaling/letterboxing only when needed
+      // For non-source resolutions (720p/1080p), always scale
+      // For source resolution, only scale if clip resolution differs from target
+      const needsScaling = resolution !== 'source' ||
+        (clip.resolution && (clip.resolution.width !== targetWidth || clip.resolution.height !== targetHeight));
+
+      console.log('[export-timeline] Single clip - needsScaling:', needsScaling, 'clip resolution:', clip.resolution);
+
+      if (needsScaling) {
         command = command.videoFilters(scaleFilter);
       }
 

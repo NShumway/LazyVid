@@ -60,7 +60,8 @@ async function addVideoToTimeline(videoPath, overrideDuration = null) {
       console.log('[addVideoToTimeline] Using override duration:', overrideDuration);
       duration = overrideDuration;
     }
-    const resolution = `${tempVideo.videoWidth}x${tempVideo.videoHeight}`;
+    const resolution = { width: tempVideo.videoWidth, height: tempVideo.videoHeight };
+    const resolutionDisplay = `${tempVideo.videoWidth}x${tempVideo.videoHeight}`;
 
     // Get file size
     let fileSize = 0;
@@ -89,6 +90,7 @@ async function addVideoToTimeline(videoPath, overrideDuration = null) {
       trimStart: 0,
       trimEnd: duration,
       resolution: resolution,
+      resolutionDisplay: resolutionDisplay,
       fileSize: fileSize,
       thumbnail: thumbnail
     };
@@ -497,10 +499,10 @@ function renderTimelineClips() {
     clipEl.style.width = `${visibleDuration * timelineState.pixelsPerSecond}px`;
 
     // Build metadata display
-    const metadataHtml = clip.resolution && clip.fileSize
+    const metadataHtml = clip.resolutionDisplay && clip.fileSize
       ? `<div class="clip-metadata">
            <span>${formatTime(visibleDuration)}</span>
-           <span>${clip.resolution}</span>
+           <span>${clip.resolutionDisplay}</span>
            <span>${formatFileSize(clip.fileSize)}</span>
          </div>`
       : '';
@@ -975,6 +977,7 @@ splitBtn.addEventListener('click', () => {
     trimStart: splitPoint,
     trimEnd: clip.trimEnd,
     resolution: clip.resolution,
+    resolutionDisplay: clip.resolutionDisplay,
     fileSize: clip.fileSize,
     thumbnail: clip.thumbnail
   };
@@ -1369,14 +1372,18 @@ async function startRecording(sourceType, selectedSource = null) {
 
     // Get screen/window stream
     // Electron 28+ requires getDisplayMedia instead of getUserMedia with chromeMediaSource
+    // Use only max constraints to let browser use native screen resolution
     screenStream = await navigator.mediaDevices.getDisplayMedia({
       audio: false,
       video: {
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
         frameRate: { ideal: 30 }
       }
     });
+
+    // Log actual captured resolution
+    const videoTrack = screenStream.getVideoTracks()[0];
+    const settings = videoTrack.getSettings();
+    console.log('[Recording] Captured resolution:', settings.width, 'x', settings.height);
 
     // Get microphone audio
     let micStream = null;
