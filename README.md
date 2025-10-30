@@ -73,9 +73,21 @@ The packaged app will be in `dist/win-unpacked/LazyVid.exe`
 
 ### Building for Distribution
 
-**IMPORTANT:** Due to Windows permission restrictions, the build process may fail if you don't have administrator privileges or Developer Mode enabled.
+**Quick Build:**
+
+```powershell
+.\build-dist.ps1
+```
+
+This automated script handles the complete build process:
+1. Cleans the dist folder
+2. Runs electron-builder
+3. Copies node_modules (required for FFmpeg)
+4. Runs validation checks
 
 #### Prerequisites for Building:
+
+**IMPORTANT:** Due to Windows permission restrictions, the build process may fail if you don't have administrator privileges or Developer Mode enabled.
 
 1. **Enable Developer Mode** (Recommended - No admin required):
    - Open Windows Settings
@@ -88,7 +100,25 @@ The packaged app will be in `dist/win-unpacked/LazyVid.exe`
 2. **Run as Administrator**:
    - Open PowerShell or Terminal as Administrator
    - Navigate to project directory
-   - Run `npm run dist`
+   - Run `.\build-dist.ps1`
+
+#### Manual Build Steps
+
+If you prefer to build manually:
+
+```powershell
+# 1. Clean dist folder
+Remove-Item -Path "dist" -Recurse -Force
+
+# 2. Build with electron-builder
+npm run dist
+
+# 3. Copy node_modules (required for FFmpeg)
+Copy-Item -Path "node_modules" -Destination "dist\win-unpacked\resources\app\" -Recurse -Force
+
+# 4. Validate the build
+npm run validate
+```
 
 #### Build Configuration
 
@@ -113,26 +143,11 @@ dist/
 └── win-unpacked/
     ├── LazyVid.exe (169 MB)
     ├── resources/
-    │   └── app.asar (12.5 MB - Your app code + dependencies)
-    ├── node_modules/ (After running copy command below)
+    │   ├── app.asar (12.5 MB - Your app code + dependencies)
+    │   └── app/
+    │       └── node_modules/ (FFmpeg binaries and dependencies)
     └── [Electron runtime files...]
 ```
-
-#### Post-Build Step (IMPORTANT):
-
-After building, you must copy node_modules to the distribution folder for FFmpeg to work:
-
-```powershell
-npm run dist
-Copy-Item -Path "node_modules" -Destination "dist\win-unpacked\resources\app\" -Recurse -Force
-```
-
-Or use the automated command (already configured):
-```powershell
-powershell -Command "cd 'D:\code\Repos\Gauntlet\LazyVid'; Copy-Item -Path 'node_modules' -Destination 'dist\win-unpacked\resources\app\' -Recurse -Force"
-```
-
-This copies the FFmpeg binaries and fluent-ffmpeg dependencies needed at runtime.
 
 ## Validation
 

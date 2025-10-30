@@ -1329,9 +1329,17 @@ async function performExport(resolution) {
 
     const result = await window.electronAPI.exportTimeline(timelineClips, outputPath, resolution);
 
+    // Ensure progress shows 100%
+    progressFill.style.width = '100%';
+    progressText.textContent = '100%';
+
     if (result.success) {
       updateStatus(`Video exported successfully to: ${outputPath.split('\\').pop()}`);
     }
+
+    // Wait 5 seconds before hiding the progress bar
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
   } catch (error) {
     updateStatus(`Export failed: ${error.message || error.error}`, true);
   } finally {
