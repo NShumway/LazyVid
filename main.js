@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 
@@ -72,11 +73,20 @@ ipcMain.handle('save-dialog', async (event, defaultName) => {
       { name: 'MP4 Video', extensions: ['mp4'] }
     ]
   });
-  
+
   if (!result.canceled) {
     return result.filePath;
   }
   return null;
+});
+
+ipcMain.handle('get-file-stats', async (event, filePath) => {
+  try {
+    const stats = fs.statSync(filePath);
+    return { size: stats.size };
+  } catch (err) {
+    throw new Error(`Failed to get file stats: ${err.message}`);
+  }
 });
 
 ipcMain.handle('export-timeline', async (event, clips, outputPath) => {

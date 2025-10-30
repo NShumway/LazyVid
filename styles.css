@@ -83,17 +83,18 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 #videoPlayer {
   max-width: 100%;
   max-height: 100%;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   display: none;
-  position: relative;
-  z-index: 1;
 }
 
 #videoPlayer[src] {
@@ -114,6 +115,10 @@ body {
   pointer-events: none;
 }
 
+#videoPlayer[src] ~ .dropzone {
+  display: none;
+}
+
 .dropzone.drag-over {
   background: rgba(52, 152, 219, 0.2);
   border: 3px dashed #3498db;
@@ -129,7 +134,7 @@ body {
   font-size: 0.9em;
 }
 
-/* Bottom Bar - Status + Timeline */
+/* Bottom Bar - Timeline */
 .bottom-bar {
   grid-area: footer;
   background: #2c3e50;
@@ -138,16 +143,17 @@ body {
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
 }
 
-/* Status Bar */
-.status-bar {
-  height: 40px;
-  background: #34495e;
-  border-bottom: 2px solid #1a252f;
+/* Status Display (inside timeline controls) */
+.status-display {
+  flex: 1;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  justify-content: space-between;
-  gap: 15px;
+  justify-content: center;
+  margin-left: 15px;
+  background: #34495e;
+  border-radius: 4px;
+  padding: 8px 15px;
+  min-width: 200px;
 }
 
 #timeDisplay {
@@ -155,17 +161,18 @@ body {
   font-family: monospace;
   font-size: 14px;
   font-weight: 600;
+  text-align: center;
 }
 
 .progress-bar {
-  flex: 1;
+  width: 300px;
+  max-width: 300px;
   background: #2c3e50;
   height: 20px;
   border-radius: 10px;
   position: relative;
   overflow: hidden;
-  margin-left: 20px;
-  max-width: 400px;
+  flex-shrink: 0;
 }
 
 .progress-fill {
@@ -291,13 +298,53 @@ body {
   cursor: move;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 8px;
   color: white;
   font-size: 0.85em;
   font-weight: 600;
   overflow: hidden;
   user-select: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  gap: 8px;
+  z-index: 5;
+}
+
+.clip-thumbnail {
+  width: 60px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.clip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.clip-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.85em;
+}
+
+.clip-metadata {
+  display: flex;
+  gap: 8px;
+  font-size: 0.7em;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.clip-metadata span {
+  white-space: nowrap;
 }
 
 .timeline-clip:hover {
@@ -355,4 +402,16 @@ body {
 
 .timeline-clip.selected .trim-handle {
   opacity: 1;
+}
+
+/* Snap Indicator */
+.snap-indicator {
+  position: absolute;
+  top: 10px;
+  height: 80px;
+  border: 2px dashed #f39c12;
+  background: rgba(243, 156, 18, 0.2);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 3;
 }

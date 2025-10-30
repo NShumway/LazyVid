@@ -100,11 +100,13 @@ test('calculateDynamicInterval returns 10s for long duration', () => {
   assert.strictEqual(calculateDynamicInterval(90), 10);
 });
 
-test('zoom range constraints (5-50 pixels per second)', () => {
-  const minZoom = 5;
-  const maxZoom = 50;
-  assert.strictEqual(Math.max(minZoom, 3), minZoom);
-  assert.strictEqual(Math.min(maxZoom, 60), maxZoom);
+test('zoom prevents negative or zero values', () => {
+  const currentZoom = 5;
+  const zoomStep = 2;
+  const newZoom = currentZoom - zoomStep;
+  const minAllowed = 0.1;
+  const isValid = newZoom >= minAllowed;
+  assert.strictEqual(isValid, true);
 });
 
 // F2: Clip Management Tests
@@ -347,6 +349,152 @@ test('timeline clips array structure for export', () => {
   assert.ok(timelineClips[0].hasOwnProperty('trimStart'));
   assert.ok(timelineClips[0].hasOwnProperty('trimEnd'));
   assert.ok(timelineClips[0].hasOwnProperty('duration'));
+});
+
+// F6: Timeline UI Enhancements Tests
+console.log('\nF6: Timeline UI Enhancements');
+
+test('auto-zoom calculates correct pixels per second', () => {
+  const totalDuration = 100; // seconds
+  const timelineWidth = 1000; // pixels
+  const calculatedZoom = timelineWidth / totalDuration;
+  assert.strictEqual(calculatedZoom, 10);
+});
+
+test('auto-zoom allows very small zoom for long videos', () => {
+  const totalDuration = 1000; // very long duration (16+ minutes)
+  const timelineWidth = 1000;
+  const calculatedZoom = timelineWidth / totalDuration; // 1 pixel per second
+  assert.strictEqual(calculatedZoom, 1);
+});
+
+test('auto-zoom allows very large zoom for short videos', () => {
+  const totalDuration = 10; // short duration
+  const timelineWidth = 1000;
+  const calculatedZoom = timelineWidth / totalDuration; // 100 pixels per second
+  assert.strictEqual(calculatedZoom, 100);
+});
+
+test('snap threshold calculation in time units', () => {
+  const snapPixels = 20;
+  const pixelsPerSecond = 10;
+  const snapThreshold = snapPixels / pixelsPerSecond;
+  assert.strictEqual(snapThreshold, 2);
+});
+
+test('snap detection at clip boundary', () => {
+  const newStartTime = 10.5;
+  const clipEnd = 10;
+  const snapThreshold = 1;
+  const shouldSnap = Math.abs(newStartTime - clipEnd) < snapThreshold;
+  assert.strictEqual(shouldSnap, true);
+});
+
+test('no snap when beyond threshold', () => {
+  const newStartTime = 15;
+  const clipEnd = 10;
+  const snapThreshold = 2;
+  const shouldSnap = Math.abs(newStartTime - clipEnd) < snapThreshold;
+  assert.strictEqual(shouldSnap, false);
+});
+
+test('formatFileSize converts bytes correctly', () => {
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  assert.strictEqual(formatFileSize(0), '0 B');
+  assert.strictEqual(formatFileSize(1024), '1 KB');
+  assert.strictEqual(formatFileSize(1048576), '1 MB');
+  assert.strictEqual(formatFileSize(1073741824), '1 GB');
+});
+
+test('formatFileSize handles non-exact values', () => {
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  const result = formatFileSize(1536);
+  assert.ok(result.includes('KB'));
+  assert.ok(parseFloat(result) === 1.5);
+});
+
+test('mouse wheel zoom step calculation', () => {
+  const deltaY = -100; // scroll up
+  const delta = -Math.sign(deltaY);
+  const zoomStep = 2;
+  const currentZoom = 10;
+  const newZoom = currentZoom + (delta * zoomStep);
+  assert.strictEqual(newZoom, 12);
+});
+
+test('zoom can reach very high levels for precision', () => {
+  const currentZoom = 100;
+  const zoomStep = 5;
+  const newZoom = currentZoom + zoomStep;
+  assert.strictEqual(newZoom, 105);
+});
+
+test('zoom respects minimum boundary to prevent zero/negative', () => {
+  const currentZoom = 0.5;
+  const zoomStep = 2;
+  const newZoom = currentZoom - zoomStep;
+  const minZoom = 0.1;
+  const isValid = newZoom >= minZoom;
+  assert.strictEqual(isValid, false); // Would go below minimum
+});
+
+test('clip reordering after drag', () => {
+  const clips = [
+    { id: 1, startTime: 10 },
+    { id: 2, startTime: 0 },
+    { id: 3, startTime: 5 }
+  ];
+  clips.sort((a, b) => a.startTime - b.startTime);
+  assert.strictEqual(clips[0].id, 2);
+  assert.strictEqual(clips[1].id, 3);
+  assert.strictEqual(clips[2].id, 1);
+});
+
+test('play from current playhead position - find correct clip', () => {
+  const currentTime = 15;
+  const clips = [
+    { startTime: 0, trimStart: 0, trimEnd: 10 },
+    { startTime: 10, trimStart: 0, trimEnd: 10 },
+    { startTime: 20, trimStart: 0, trimEnd: 10 }
+  ];
+
+  let foundIndex = -1;
+  for (let i = 0; i < clips.length; i++) {
+    const clip = clips[i];
+    const clipStart = clip.startTime;
+    const clipEnd = clip.startTime + (clip.trimEnd - clip.trimStart);
+    if (currentTime >= clipStart && currentTime < clipEnd) {
+      foundIndex = i;
+      break;
+    }
+  }
+
+  assert.strictEqual(foundIndex, 1);
+});
+
+test('play from current playhead - calculate offset in clip', () => {
+  const currentTime = 15;
+  const clip = { startTime: 10, trimStart: 2, trimEnd: 22 };
+  const clipStart = clip.startTime;
+  const offsetInClip = currentTime - clipStart;
+  const videoTime = clip.trimStart + offsetInClip;
+
+  assert.strictEqual(offsetInClip, 5);
+  assert.strictEqual(videoTime, 7);
 });
 
 // Summary

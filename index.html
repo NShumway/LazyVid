@@ -14,6 +14,7 @@
       <div class="toolbar-separator"></div>
       <button id="markInBtn" class="toolbar-btn" title="Mark In Point (I)" disabled>I</button>
       <button id="markOutBtn" class="toolbar-btn" title="Mark Out Point (O)" disabled>O</button>
+      <button id="splitBtn" class="toolbar-btn" title="Split Clip at Playhead" disabled>✂</button>
       <button id="deleteBtn" class="toolbar-btn" title="Delete Clip" disabled>🗑</button>
     </aside>
 
@@ -28,19 +29,18 @@
     </main>
 
     <footer class="bottom-bar">
-      <section class="status-bar">
-        <span id="timeDisplay">0:00 / 0:00</span>
-        <div id="progressBar" class="progress-bar" style="display: none;">
-          <div id="progressFill" class="progress-fill"></div>
-          <span id="progressText">0%</span>
-        </div>
-      </section>
-
       <section class="timeline-section">
         <div class="timeline-controls">
           <button id="playBtn" class="btn-icon" title="Play/Pause">▶</button>
           <button id="zoomInBtn" class="btn-icon" title="Zoom In">+</button>
           <button id="zoomOutBtn" class="btn-icon" title="Zoom Out">-</button>
+          <div class="status-display">
+            <span id="timeDisplay">0:00 / 0:00</span>
+            <div id="progressBar" class="progress-bar" style="display: none;">
+              <div id="progressFill" class="progress-fill"></div>
+              <span id="progressText">0%</span>
+            </div>
+          </div>
         </div>
         <div class="timeline-container">
           <div id="timeRuler" class="time-ruler"></div>

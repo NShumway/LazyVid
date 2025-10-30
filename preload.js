@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportVideo: (inputPath, outputPath) => ipcRenderer.invoke('export-video', inputPath, outputPath),
   exportTimeline: (clips, outputPath) => ipcRenderer.invoke('export-timeline', clips, outputPath),
   saveDialog: (defaultName) => ipcRenderer.invoke('save-dialog', defaultName),
+  getFileStats: (filePath) => ipcRenderer.invoke('get-file-stats', filePath),
   onExportProgress: (callback) => ipcRenderer.on('export-progress', (event, percent) => callback(percent))
 });

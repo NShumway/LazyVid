@@ -33,8 +33,6 @@ test('timeline state object exists with required properties', () => {
   assert.ok(rendererCode.includes('duration:'));
   assert.ok(rendererCode.includes('currentTime:'));
   assert.ok(rendererCode.includes('pixelsPerSecond:'));
-  assert.ok(rendererCode.includes('minZoom:'));
-  assert.ok(rendererCode.includes('maxZoom:'));
 });
 
 test('formatTime function is defined', () => {
@@ -367,6 +365,122 @@ test('FFmpeg codecs specified for output', () => {
 test('export success/error response structure', () => {
   assert.ok(mainCode.includes('{ success: true }'));
   assert.ok(mainCode.includes('{ success: false'));
+});
+
+// F6: Timeline UI Enhancements - Code Structure Tests
+console.log('\nF6: Timeline UI Enhancements - Code Structure');
+
+test('autoZoomToFit function is defined', () => {
+  assert.ok(rendererCode.includes('function autoZoomToFit('));
+});
+
+test('auto-zoom called when adding video to timeline', () => {
+  assert.ok(rendererCode.includes('autoZoomToFit()'));
+});
+
+test('mouse wheel zoom event listener exists on timeline', () => {
+  assert.ok(rendererCode.includes("timeline.addEventListener('wheel'"));
+});
+
+test('mouse wheel zoom event listener exists on time ruler', () => {
+  assert.ok(rendererCode.includes("timeRuler.addEventListener('wheel'"));
+});
+
+test('mouse wheel zoom prevents default behavior', () => {
+  assert.ok(rendererCode.includes('e.preventDefault()'));
+});
+
+test('time ruler click handler exists', () => {
+  assert.ok(rendererCode.includes("timeRuler.addEventListener('click'"));
+});
+
+test('timeline click deselects clip', () => {
+  assert.ok(rendererCode.includes('selectedClip = null'));
+});
+
+test('snap indicator functions exist', () => {
+  assert.ok(rendererCode.includes('function showSnapIndicator('));
+  assert.ok(rendererCode.includes('function hideSnapIndicator('));
+});
+
+test('snap indicator CSS class exists', () => {
+  const stylesPath = path.join(__dirname, '..', 'styles.css');
+  const stylesCode = fs.readFileSync(stylesPath, 'utf8');
+  assert.ok(stylesCode.includes('.snap-indicator'));
+});
+
+test('snap threshold calculation exists', () => {
+  assert.ok(rendererCode.includes('snapThreshold'));
+});
+
+test('clip reordering after drag exists', () => {
+  assert.ok(rendererCode.includes('timelineClips.sort'));
+});
+
+test('generateThumbnail function is defined', () => {
+  assert.ok(rendererCode.includes('function generateThumbnail('));
+});
+
+test('formatFileSize function is defined', () => {
+  assert.ok(rendererCode.includes('function formatFileSize('));
+});
+
+test('clip structure includes thumbnail property', () => {
+  assert.ok(rendererCode.includes('thumbnail:'));
+});
+
+test('clip structure includes resolution property', () => {
+  assert.ok(rendererCode.includes('resolution:'));
+});
+
+test('clip structure includes fileSize property', () => {
+  assert.ok(rendererCode.includes('fileSize:'));
+});
+
+test('clip thumbnail element is rendered', () => {
+  assert.ok(rendererCode.includes('clip-thumbnail'));
+});
+
+test('clip metadata element is rendered', () => {
+  assert.ok(rendererCode.includes('clip-metadata'));
+});
+
+test('clip content wrapper exists', () => {
+  assert.ok(rendererCode.includes('clip-content'));
+});
+
+test('getFileStats IPC handler is registered', () => {
+  assert.ok(mainCode.includes("ipcMain.handle('get-file-stats'"));
+});
+
+test('getFileStats uses fs.statSync', () => {
+  assert.ok(mainCode.includes('fs.statSync'));
+});
+
+test('preload exposes getFileStats API', () => {
+  const preloadPath = path.join(__dirname, '..', 'preload.js');
+  const preloadCode = fs.readFileSync(preloadPath, 'utf8');
+  assert.ok(preloadCode.includes('getFileStats:'));
+});
+
+test('play from current playhead position logic exists', () => {
+  assert.ok(rendererCode.includes('const currentTime = timelineState.currentTime'));
+});
+
+test('zoom buttons update timeline clips on zoom', () => {
+  const zoomInSection = rendererCode.substring(
+    rendererCode.indexOf("zoomInBtn.addEventListener('click'"),
+    rendererCode.indexOf("zoomOutBtn.addEventListener('click'")
+  );
+  assert.ok(zoomInSection.includes('renderTimelineClips()'));
+});
+
+test('canvas element created for thumbnail generation', () => {
+  assert.ok(rendererCode.includes('document.createElement(\'canvas\')'));
+});
+
+test('thumbnail uses toDataURL for encoding', () => {
+  assert.ok(rendererCode.includes('toDataURL'));
 });
 
 // Summary
