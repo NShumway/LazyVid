@@ -1317,6 +1317,7 @@ async function performExport(resolution) {
 
     exportBtn.disabled = true;
     importBtn.disabled = true;
+    timeDisplay.style.display = 'none';
     progressBar.style.display = 'block';
     updateStatus('Exporting video...');
 
@@ -1336,6 +1337,7 @@ async function performExport(resolution) {
   } finally {
     exportBtn.disabled = false;
     importBtn.disabled = false;
+    timeDisplay.style.display = 'block';
     progressBar.style.display = 'none';
     progressFill.style.width = '0%';
     progressText.textContent = '0%';
