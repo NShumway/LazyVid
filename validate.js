@@ -10,9 +10,9 @@ const requiredFiles = [
   'package.json'
 ];
 
-const executablePath = path.join(__dirname, 'dist', 'win-unpacked', 'ClipForge.exe');
+const executablePath = path.join(__dirname, 'dist', 'win-unpacked', 'LazyVid.exe');
 
-console.log('Validating ClipForge build...\n');
+console.log('Validating LazyVid build...\n');
 
 let errors = 0;
 
@@ -29,9 +29,9 @@ requiredFiles.forEach(file => {
 if (fs.existsSync(executablePath)) {
   const stats = fs.statSync(executablePath);
   const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
-  console.log(`✓ ClipForge.exe (${sizeMB} MB)`);
+  console.log(`✓ LazyVid.exe (${sizeMB} MB)`);
 } else {
-  console.log('✗ ClipForge.exe - NOT BUILT');
+  console.log('✗ LazyVid.exe - NOT BUILT');
   errors++;
 }
 

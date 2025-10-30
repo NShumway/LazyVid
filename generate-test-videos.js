@@ -105,7 +105,7 @@ async function generateAllTestVideos() {
     console.log('  - test-vertical.mp4 (3s, pink, 480x640)');
     console.log('');
     console.log('Usage:');
-    console.log('  1. Import these videos into ClipForge for testing');
+    console.log('  1. Import these videos into LazyVid for testing');
     console.log('  2. Test timeline with multiple clips (A, B, C)');
     console.log('  3. Test trim operations on short/medium/long clips');
     console.log('  4. Test different resolutions (HD, vertical)');

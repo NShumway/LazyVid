@@ -1,5 +1,5 @@
 {
-  "name": "clipforge",
+  "name": "lazyvid",
   "version": "0.1.0",
   "description": "Desktop video editor built with Electron",
   "main": "main.js",
@@ -27,8 +27,8 @@
     "fluent-ffmpeg": "^2.1.2"
   },
   "build": {
-    "appId": "com.clipforge.app",
-    "productName": "ClipForge",
+    "appId": "com.lazyvid.app",
+    "productName": "LazyVid",
     "electronDist": "node_modules/electron/dist",
     "win": {
       "target": "dir",

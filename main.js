@@ -19,7 +19,7 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 }
 
 app.whenReady().then(createWindow);
@@ -106,7 +106,7 @@ ipcMain.handle('export-timeline', async (event, clips, outputPath) => {
       const fs = require('fs');
       const os = require('os');
       const tempDir = os.tmpdir();
-      const listFile = path.join(tempDir, 'clipforge-concat-list.txt');
+      const listFile = path.join(tempDir, 'lazyvid-concat-list.txt');
       
       const fileList = clips.map((clip, idx) => {
         return `file '${clip.path.replace(/\\/g, '/')}'\ninpoint ${clip.trimStart || 0}\noutpoint ${clip.trimEnd || clip.duration}`;

@@ -1,82 +1,73 @@
 let currentVideoPath = null;
-let mediaLibrary = [];
 let timelineClips = [];
 let clipIdCounter = 0;
-let currentView = 'preview';
 
 const importBtn = document.getElementById('importBtn');
 const exportBtn = document.getElementById('exportBtn');
+const deleteBtn = document.getElementById('deleteBtn');
 const videoPlayer = document.getElementById('videoPlayer');
 const dropzone = document.getElementById('dropzone');
-const statusMessage = document.getElementById('statusMessage');
 const progressBar = document.getElementById('progressBar');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
-const viewToggleBtn = document.getElementById('viewToggleBtn');
-const workspace = document.querySelector('.workspace');
+const videoPreview = document.querySelector('.video-preview');
 
 function updateStatus(message, isError = false) {
-  if (statusMessage) {
-    statusMessage.textContent = message;
-    statusMessage.style.color = isError ? '#e74c3c' : '#2ecc71';
-  }
-  // Log to console for debugging
   console.log(`[${isError ? 'ERROR' : 'STATUS'}] ${message}`);
 }
-
-function switchView(view) {
-  currentView = view;
-  workspace.className = `workspace ${view}-view`;
-  
-  if (view === 'library') {
-    viewToggleBtn.textContent = '▭';
-    viewToggleBtn.title = 'Switch to Preview';
-  } else {
-    viewToggleBtn.textContent = '⊞';
-    viewToggleBtn.title = 'Switch to Library';
-  }
-}
-
-function updateChecklist(item, status) {
-  const element = document.getElementById(`check-${item}`);
-  if (element) {
-    const symbols = { pending: '⏳', success: '✓', error: '✗' };
-    element.textContent = element.textContent.replace(/^[✓✗⏳]/, symbols[status]);
-    element.style.color = status === 'success' ? '#2ecc71' : status === 'error' ? '#e74c3c' : '#95a5a6';
-  }
-  // Log checklist updates to console for debugging
-  console.log(`[CHECKLIST] ${item}: ${status}`);
-}
-
-viewToggleBtn.addEventListener('click', () => {
-  switchView(currentView === 'preview' ? 'library' : 'preview');
-});
 
 importBtn.addEventListener('click', async () => {
   try {
     const videoPath = await window.electronAPI.selectVideo();
-    
+
     if (videoPath) {
-      currentVideoPath = videoPath;
-      
-      videoPlayer.src = `file://${videoPath}`;
-      videoPlayer.style.display = 'block';
-      dropzone.style.display = 'none';
-      exportBtn.disabled = false;
-      
-      addToMediaLibrary(videoPath);
-      switchView('library');
-      
-      updateStatus(`Video loaded: ${videoPath.split('\\').pop()}`);
-      updateChecklist('import', 'success');
-      updateChecklist('preview', 'success');
-      updateChecklist('ffmpeg', 'success');
+      addVideoToTimeline(videoPath);
+      updateStatus(`Video imported: ${videoPath.split('\\').pop()}`);
     }
   } catch (error) {
     updateStatus(`Import failed: ${error.message}`, true);
-    updateChecklist('import', 'error');
   }
 });
+
+function addVideoToTimeline(videoPath) {
+  const fileName = videoPath.split('\\').pop();
+
+  // Create temp video to get duration
+  const tempVideo = document.createElement('video');
+  tempVideo.src = `file://${videoPath}`;
+  tempVideo.addEventListener('loadedmetadata', () => {
+    const duration = tempVideo.duration;
+
+    // Calculate position at end of timeline
+    const endPosition = timelineClips.length > 0
+      ? Math.max(...timelineClips.map(c => c.startTime + (c.trimEnd - c.trimStart)))
+      : 0;
+
+    const clip = {
+      id: `timeline-${Date.now()}-${clipIdCounter++}`,
+      clipId: clipIdCounter,
+      name: fileName,
+      path: videoPath,
+      startTime: endPosition,
+      duration: duration,
+      trimStart: 0,
+      trimEnd: duration
+    };
+
+    timelineClips.push(clip);
+    renderTimelineClips();
+    updateTimeDisplay();
+    exportBtn.disabled = false;
+
+    // Load first clip in player if this is the first clip
+    if (timelineClips.length === 1) {
+      videoPlayer.src = `file://${videoPath}`;
+      videoPlayer.currentTime = 0;
+    }
+
+    updateStatus(`Added to timeline: ${fileName}`);
+  });
+}
 
 exportBtn.addEventListener('click', async () => {
   if (timelineClips.length === 0) {
@@ -86,7 +77,7 @@ exportBtn.addEventListener('click', async () => {
 
   try {
     const outputPath = await window.electronAPI.saveDialog('exported-video.mp4');
-    
+
     if (!outputPath) {
       return;
     }
@@ -106,11 +97,9 @@ exportBtn.addEventListener('click', async () => {
 
     if (result.success) {
       updateStatus(`Video exported successfully to: ${outputPath.split('\\').pop()}`);
-      updateChecklist('export', 'success');
     }
   } catch (error) {
     updateStatus(`Export failed: ${error.message || error.error}`, true);
-    updateChecklist('export', 'error');
   } finally {
     exportBtn.disabled = false;
     importBtn.disabled = false;
@@ -118,15 +107,6 @@ exportBtn.addEventListener('click', async () => {
     progressFill.style.width = '0%';
     progressText.textContent = '0%';
   }
-});
-
-videoPlayer.addEventListener('loadedmetadata', () => {
-  updateStatus(`Video ready: ${videoPlayer.videoWidth}x${videoPlayer.videoHeight}, ${Math.round(videoPlayer.duration)}s`);
-});
-
-videoPlayer.addEventListener('error', () => {
-  updateStatus('Video playback error', true);
-  updateChecklist('preview', 'error');
 });
 
 // Timeline Foundation
@@ -155,6 +135,13 @@ function formatTime(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function updateTimeDisplay() {
+  const totalDuration = timelineClips.length > 0
+    ? Math.max(...timelineClips.map(c => c.startTime + (c.trimEnd - c.trimStart)))
+    : 0;
+  timeDisplay.textContent = `${formatTime(timelineState.currentTime)} / ${formatTime(totalDuration)}`;
+}
+
 function renderTimeRuler() {
   timeRuler.innerHTML = '';
   const timelineWidth = timeline.offsetWidth;
@@ -176,7 +163,7 @@ function renderTimeRuler() {
 function updatePlayhead() {
   const position = timelineState.currentTime * timelineState.pixelsPerSecond;
   playhead.style.left = `${position}px`;
-  timeDisplay.textContent = formatTime(timelineState.currentTime);
+  updateTimeDisplay();
 }
 
 function seekTimeline(clickX) {
@@ -195,13 +182,11 @@ function seekTimeline(clickX) {
       // Load this clip and seek to the right position within it
       const offsetInClip = seekTime - clipStart;
       const videoTime = clip.trimStart + offsetInClip;
-      
+
       if (videoPlayer.src !== `file://${clip.path}`) {
         videoPlayer.src = `file://${clip.path}`;
       }
       videoPlayer.currentTime = videoTime;
-      videoPlayer.style.display = 'block';
-      dropzone.style.display = 'none';
       updateStatus(`Seeked to ${clip.name} @ ${formatTime(videoTime)}`);
       return;
     }
@@ -213,9 +198,6 @@ timeline.addEventListener('click', (e) => {
     return;
   }
   seekTimeline(e.clientX);
-  if (timelineClips.length > 0) {
-    switchView('preview');
-  }
 });
 
 zoomInBtn.addEventListener('click', () => {
@@ -238,26 +220,23 @@ window.addEventListener('resize', renderTimeRuler);
 
 playBtn.addEventListener('click', () => {
   updateStatus(`Play button clicked (clips: ${timelineClips.length})`);
-  
+
   if (timelineClips.length === 0) {
     updateStatus('No clips on timeline to play', true);
     return;
   }
-  
+
   if (timelineState.isPlaying) {
     videoPlayer.pause();
     timelineState.isPlaying = false;
     playBtn.textContent = '▶';
     updateStatus('Playback paused');
   } else {
-    switchView('preview');
     currentPlayingClipIndex = 0;
     const firstClip = timelineClips[0];
     updateStatus(`Loading: ${firstClip.name}`);
     videoPlayer.src = `file://${firstClip.path}`;
     videoPlayer.currentTime = firstClip.trimStart || 0;
-    videoPlayer.style.display = 'block';
-    dropzone.style.display = 'none';
     videoPlayer.play();
     timelineState.isPlaying = true;
     playBtn.textContent = '⏸';
@@ -312,13 +291,22 @@ videoPlayer.addEventListener('pause', () => {
 
 renderTimeRuler();
 updatePlayhead();
-switchView('library');
+updateTimeDisplay();
 
 // Playhead dragging
 playhead.addEventListener('mousedown', (e) => {
   e.preventDefault();
   e.stopPropagation();
-  playheadDragState = { isDragging: true };
+
+  // Pause playback if playing
+  const wasPlaying = timelineState.isPlaying;
+  if (wasPlaying) {
+    videoPlayer.pause();
+    timelineState.isPlaying = false;
+    playBtn.textContent = '▶';
+  }
+
+  playheadDragState = { isDragging: true, wasPlaying };
   document.addEventListener('mousemove', handlePlayheadDrag);
   document.addEventListener('mouseup', handlePlayheadDragEnd);
 });
@@ -329,131 +317,13 @@ function handlePlayheadDrag(e) {
 }
 
 function handlePlayheadDragEnd() {
+  // Keep paused even if it was playing before
   playheadDragState = null;
   document.removeEventListener('mousemove', handlePlayheadDrag);
   document.removeEventListener('mouseup', handlePlayheadDragEnd);
 }
 
 // Clip Management
-const mediaItems = document.getElementById('mediaItems');
-
-function addToMediaLibrary(videoPath) {
-  const fileName = videoPath.split('\\').pop();
-  const clip = {
-    id: clipIdCounter++,
-    path: videoPath,
-    name: fileName,
-    duration: 0
-  };
-  
-  const tempVideo = document.createElement('video');
-  tempVideo.src = `file://${videoPath}`;
-  tempVideo.addEventListener('loadedmetadata', () => {
-    clip.duration = tempVideo.duration;
-    renderMediaLibrary();
-  });
-  
-  mediaLibrary.push(clip);
-  renderMediaLibrary();
-  
-  if (mediaLibrary.length === 1) {
-    videoPlayer.src = `file://${videoPath}`;
-    videoPlayer.style.display = 'block';
-    dropzone.style.display = 'none';
-    updateStatus(`Preview: ${fileName}`);
-  }
-}
-
-function renderMediaLibrary() {
-  if (mediaLibrary.length === 0) {
-    mediaItems.innerHTML = '<p class="empty-state">No clips imported</p>';
-    return;
-  }
-  
-  mediaItems.innerHTML = mediaLibrary.map(clip => `
-    <div class="media-item" draggable="true" data-clip-id="${clip.id}">
-      <div class="media-item-name">${clip.name}</div>
-      <div class="media-item-duration">${formatTime(clip.duration)}</div>
-    </div>
-  `).join('');
-  
-  document.querySelectorAll('.media-item').forEach(item => {
-    item.addEventListener('dragstart', handleDragStart);
-    item.addEventListener('click', () => {
-      const clipId = parseInt(item.dataset.clipId);
-      const clip = mediaLibrary.find(c => c.id === clipId);
-      if (clip) {
-        videoPlayer.src = `file://${clip.path}`;
-        videoPlayer.currentTime = 0;
-        videoPlayer.style.display = 'block';
-        dropzone.style.display = 'none';
-        
-        const alreadyOnTimeline = timelineClips.some(tc => tc.clipId === clip.id);
-        if (!alreadyOnTimeline) {
-          const nextPosition = timelineClips.length > 0 
-            ? Math.max(...timelineClips.map(c => c.startTime + (c.trimEnd - c.trimStart)))
-            : 0;
-          addClipToTimeline(clip, nextPosition);
-          updateStatus(`Added to timeline: ${clip.name}`);
-        } else {
-          updateStatus(`Preview: ${clip.name}`);
-        }
-      }
-    });
-  });
-}
-
-function handleDragStart(e) {
-  e.dataTransfer.effectAllowed = 'copy';
-  e.dataTransfer.setData('media-library-clip-id', e.target.dataset.clipId);
-}
-
-timeline.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'copy';
-});
-
-timeline.addEventListener('drop', (e) => {
-  e.preventDefault();
-  
-  // Adding a new clip from media library
-  const mediaClipId = parseInt(e.dataTransfer.getData('media-library-clip-id'));
-  const clip = mediaLibrary.find(c => c.id === mediaClipId);
-  
-  if (clip) {
-    const rect = timeline.getBoundingClientRect();
-    const dropPosition = e.clientX - rect.left;
-    const startTime = dropPosition / timelineState.pixelsPerSecond;
-    
-    addClipToTimeline(clip, startTime);
-  }
-});
-
-function addClipToTimeline(clip, startTime) {
-  const timelineClip = {
-    id: `timeline-${Date.now()}`,
-    clipId: clip.id,
-    name: clip.name,
-    path: clip.path,
-    startTime: startTime,
-    duration: clip.duration,
-    trimStart: 0,
-    trimEnd: clip.duration
-  };
-  
-  timelineClips.push(timelineClip);
-  updateStatus(`Clip added to timeline (count: ${timelineClips.length})`);
-  renderTimelineClips();
-  exportBtn.disabled = false;
-  
-  if (timelineClips.length === 1) {
-    videoPlayer.src = `file://${clip.path}`;
-    videoPlayer.style.display = 'block';
-    dropzone.style.display = 'none';
-    updateStatus(`Preview loaded: ${clip.name}`);
-  }
-}
-
 let selectedClip = null;
 
 function renderTimelineClips() {
@@ -486,15 +356,11 @@ function renderTimelineClips() {
         selectedClip = clip.id;
         console.log(`[CLIP SELECT] Clip selected: ${clip.name} (ID: ${clip.id})`);
         renderTimelineClips();
-
-        markInBtn.disabled = false;
-        markOutBtn.disabled = false;
+        updateToolbarButtonStates();
 
         updateStatus(`Loading clip: ${clip.name}`);
         videoPlayer.src = `file://${clip.path}`;
         videoPlayer.currentTime = clip.trimStart || 0;
-        videoPlayer.style.display = 'block';
-        dropzone.style.display = 'none';
         updateStatus(`Preview: ${clip.name} @ ${formatTime(clip.trimStart || 0)}`);
       }
     });
@@ -590,26 +456,46 @@ window.deleteTimelineClip = function(clipId) {
   timelineClips = timelineClips.filter(c => c.id !== clipId);
   if (selectedClip === clipId) {
     selectedClip = null;
-    markInBtn.disabled = true;
-    markOutBtn.disabled = true;
+    updateToolbarButtonStates();
   }
   renderTimelineClips();
+  updateTimeDisplay();
   if (timelineClips.length === 0) {
     exportBtn.disabled = true;
   }
 };
 
+// Delete button handler
+deleteBtn.addEventListener('click', () => {
+  if (!selectedClip) return;
+  window.deleteTimelineClip(selectedClip);
+});
+
+function updateToolbarButtonStates() {
+  const hasSelection = selectedClip !== null;
+  markInBtn.disabled = !hasSelection;
+  markOutBtn.disabled = !hasSelection;
+  deleteBtn.disabled = !hasSelection;
+}
+
 // Mark In/Out button handlers
 markInBtn.addEventListener('click', () => {
   if (!selectedClip) return;
-  
+
   const clip = timelineClips.find(c => c.id === selectedClip);
   if (!clip) return;
-  
+
   const currentTime = videoPlayer.currentTime;
   if (currentTime < clip.trimEnd) {
     clip.trimStart = Math.max(0, currentTime);
     renderTimelineClips();
+    updateTimeDisplay();
+
+    // Keep playhead at the same position (which is now the clip's new start)
+    // The timeline position is: clip start position + 0 (since we're at the new trimStart)
+    timelineState.currentTime = clip.startTime;
+    updatePlayhead();
+
     updateStatus(`In point set at ${formatTime(clip.trimStart)}`);
   } else {
     updateStatus('In point must be before out point', true);
@@ -618,14 +504,15 @@ markInBtn.addEventListener('click', () => {
 
 markOutBtn.addEventListener('click', () => {
   if (!selectedClip) return;
-  
+
   const clip = timelineClips.find(c => c.id === selectedClip);
   if (!clip) return;
-  
+
   const currentTime = videoPlayer.currentTime;
   if (currentTime > clip.trimStart && currentTime <= clip.duration) {
     clip.trimEnd = currentTime;
     renderTimelineClips();
+    updateTimeDisplay();
     updateStatus(`Out point set at ${formatTime(clip.trimEnd)}`);
   } else {
     updateStatus('Out point must be after in point and within clip duration', true);
@@ -656,12 +543,19 @@ document.addEventListener('keydown', (e) => {
     if (currentTime < clip.trimEnd) {
       clip.trimStart = Math.max(0, currentTime);
       renderTimelineClips();
+      updateTimeDisplay();
+
+      // Keep playhead at the same position (which is now the clip's new start)
+      // The timeline position is: clip start position + 0 (since we're at the new trimStart)
+      timelineState.currentTime = clip.startTime;
+      updatePlayhead();
+
       updateStatus(`In point set at ${formatTime(clip.trimStart)}`);
     } else {
       updateStatus('In point must be before out point', true);
     }
   }
-  
+
   // O key - Mark Out point
   if (e.key === 'o' || e.key === 'O') {
     e.preventDefault();
@@ -669,6 +563,7 @@ document.addEventListener('keydown', (e) => {
     if (currentTime > clip.trimStart && currentTime <= clip.duration) {
       clip.trimEnd = currentTime;
       renderTimelineClips();
+      updateTimeDisplay();
       updateStatus(`Out point set at ${formatTime(clip.trimEnd)}`);
     } else {
       updateStatus('Out point must be after in point and within clip duration', true);
@@ -677,44 +572,42 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Drag-Drop Import
-const previewSection = document.querySelector('.preview');
-
-previewSection.addEventListener('dragenter', (e) => {
+videoPreview.addEventListener('dragenter', (e) => {
   e.preventDefault();
   if (e.dataTransfer.types.includes('Files')) {
     dropzone.classList.add('drag-over');
   }
 });
 
-previewSection.addEventListener('dragover', (e) => {
+videoPreview.addEventListener('dragover', (e) => {
   e.preventDefault();
   if (e.dataTransfer.types.includes('Files')) {
     e.dataTransfer.dropEffect = 'copy';
   }
 });
 
-previewSection.addEventListener('dragleave', (e) => {
-  if (e.target === previewSection || e.target === dropzone) {
+videoPreview.addEventListener('dragleave', (e) => {
+  if (e.target === videoPreview || e.target === dropzone) {
     dropzone.classList.remove('drag-over');
   }
 });
 
-previewSection.addEventListener('drop', (e) => {
+videoPreview.addEventListener('drop', (e) => {
   e.preventDefault();
   dropzone.classList.remove('drag-over');
-  
+
   const files = Array.from(e.dataTransfer.files);
-  const videoFiles = files.filter(file => 
-    file.type.startsWith('video/') || 
+  const videoFiles = files.filter(file =>
+    file.type.startsWith('video/') ||
     /\.(mp4|mov|webm)$/i.test(file.name)
   );
-  
+
   if (videoFiles.length > 0) {
     videoFiles.forEach(file => {
       const videoPath = file.path;
-      addToMediaLibrary(videoPath);
+      addVideoToTimeline(videoPath);
     });
-    
+
     updateStatus(`Imported ${videoFiles.length} video(s)`);
   }
 });

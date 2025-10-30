@@ -29,7 +29,7 @@ function calculateTrimBounds(currentTrim, deltaTime, minTrim, maxTrim, minDurati
 }
 
 // Test Suite
-console.log('Running Unit Tests for ClipForge...\n');
+console.log('Running Unit Tests for LazyVid...\n');
 
 let passed = 0;
 let failed = 0;

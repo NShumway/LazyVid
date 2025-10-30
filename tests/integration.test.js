@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-console.log('Running Integration Tests for ClipForge...\n');
+console.log('Running Integration Tests for LazyVid...\n');
 
 let passed = 0;
 let failed = 0;
@@ -86,8 +86,7 @@ test('HTML contains timeline DOM elements', () => {
 // F2: Clip Management - Code Structure Tests
 console.log('\nF2: Clip Management - Code Structure');
 
-test('media library arrays are initialized', () => {
-  assert.ok(rendererCode.includes('let mediaLibrary = []'));
+test('timeline clips array is initialized', () => {
   assert.ok(rendererCode.includes('let timelineClips = []'));
 });
 
@@ -95,42 +94,23 @@ test('clip ID counter is initialized', () => {
   assert.ok(rendererCode.includes('let clipIdCounter'));
 });
 
-test('addToMediaLibrary function is defined', () => {
-  assert.ok(rendererCode.includes('function addToMediaLibrary('));
-});
-
-test('renderMediaLibrary function is defined', () => {
-  assert.ok(rendererCode.includes('function renderMediaLibrary('));
-});
-
-test('addClipToTimeline function is defined', () => {
-  assert.ok(rendererCode.includes('function addClipToTimeline('));
+test('addVideoToTimeline function is defined', () => {
+  assert.ok(rendererCode.includes('function addVideoToTimeline('));
 });
 
 test('renderTimelineClips function is defined', () => {
   assert.ok(rendererCode.includes('function renderTimelineClips('));
 });
 
-test('drag-and-drop handlers exist for media items', () => {
-  assert.ok(rendererCode.includes('handleDragStart'));
-  assert.ok(rendererCode.includes("addEventListener('dragstart'"));
-});
-
-test('timeline dragover event listener exists', () => {
-  assert.ok(rendererCode.includes("timeline.addEventListener('dragover'"));
-});
-
-test('timeline drop event listener exists for clips', () => {
-  assert.ok(rendererCode.includes("timeline.addEventListener('drop'"));
-});
-
 test('deleteTimelineClip function exists', () => {
   assert.ok(rendererCode.includes('window.deleteTimelineClip'));
 });
 
-test('HTML contains media library DOM elements', () => {
-  assert.ok(indexHtml.includes('class="media-library"'));
-  assert.ok(indexHtml.includes('id="mediaItems"'));
+test('HTML contains left toolbar with buttons', () => {
+  assert.ok(indexHtml.includes('class="left-toolbar"'));
+  assert.ok(indexHtml.includes('id="importBtn"'));
+  assert.ok(indexHtml.includes('id="exportBtn"'));
+  assert.ok(indexHtml.includes('id="deleteBtn"'));
 });
 
 test('clip structure includes all required properties', () => {
@@ -208,16 +188,16 @@ test('preview section dragenter event listener exists', () => {
   assert.ok(rendererCode.includes("addEventListener('dragenter'"));
 });
 
-test('preview section dragover event listener exists', () => {
-  assert.ok(rendererCode.includes("previewSection.addEventListener('dragover'"));
+test('video preview dragover event listener exists', () => {
+  assert.ok(rendererCode.includes("videoPreview.addEventListener('dragover'"));
 });
 
-test('preview section dragleave event listener exists', () => {
+test('video preview dragleave event listener exists', () => {
   assert.ok(rendererCode.includes("addEventListener('dragleave'"));
 });
 
-test('preview section drop event listener exists', () => {
-  assert.ok(rendererCode.includes("previewSection.addEventListener('drop'"));
+test('video preview drop event listener exists', () => {
+  assert.ok(rendererCode.includes("videoPreview.addEventListener('drop'"));
 });
 
 test('drag-over visual feedback exists', () => {
@@ -247,10 +227,9 @@ test('drop effect is set to copy', () => {
 // Cross-Feature Integration Tests
 console.log('\nCross-Feature Integration');
 
-test('import adds clips to media library which can be dragged to timeline', () => {
-  assert.ok(rendererCode.includes('addToMediaLibrary'));
-  assert.ok(rendererCode.includes('renderMediaLibrary'));
-  assert.ok(rendererCode.includes('addClipToTimeline'));
+test('import adds clips directly to timeline', () => {
+  assert.ok(rendererCode.includes('addVideoToTimeline'));
+  assert.ok(rendererCode.includes('renderTimelineClips'));
 });
 
 test('timeline clips respond to zoom changes', () => {

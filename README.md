@@ -1,8 +1,8 @@
-# ClipForge - Thin Slice MVP
+# LazyVid
 
-[![Build and Validate](https://github.com/YOUR_USERNAME/LazyVid-main/actions/workflows/build.yml/badge.svg)](https://github.com/YOUR_USERNAME/LazyVid-main/actions/workflows/build.yml)
+[![Build and Validate](https://github.com/YOUR_USERNAME/LazyVid/actions/workflows/build.yml/badge.svg)](https://github.com/YOUR_USERNAME/LazyVid/actions/workflows/build.yml)
 
-A minimal desktop video editor built with Electron to validate the technical stack as a shippable unit.
+A desktop video editor built with Electron for screen recording and video editing.
 
 ## Tech Stack Validation
 
@@ -51,7 +51,7 @@ Create a distributable Windows application:
 npm run dist
 ```
 
-The packaged app will be in `dist/win-unpacked/ClipForge.exe`
+The packaged app will be in `dist/win-unpacked/LazyVid.exe`
 
 ## Validation
 
@@ -69,7 +69,7 @@ This checks:
 ## Testing the Packaged App
 
 1. Navigate to `dist/win-unpacked/`
-2. Run `ClipForge.exe`
+2. Run `LazyVid.exe`
 3. Click "Import Video" and select any MP4/MOV file
 4. Verify video plays in the preview player
 5. Click "Export Video" and choose a save location

@@ -1,4 +1,4 @@
-# ClipForge - Technical Requirements
+# LazyVid - Technical Requirements
 
 ## Project Overview
 Build a desktop video editor in 72 hours with two hard deadlines:
