@@ -21,10 +21,13 @@ A desktop video editor built with Electron featuring screen recording with webca
 - Recordings automatically added to timeline with correct duration
 
 ### ✅ Video Import/Export
-- Drag & drop video files (MP4, MOV, WebM)
-- File picker import
-- Export timeline to MP4 with progress tracking
-- Handles multiple clips with concat demuxer
+- **Drag & drop** video files (MP4, MOV, WebM)
+- **File picker** import
+- **Export resolution options** - Choose from Source, 1080p, or 720p
+- **Letterboxing/Pillarboxing** - Handles mixed resolutions with proper aspect ratio
+- **Native resolution capture** - Supports ultra-wide and high-res displays (up to 8K)
+- **Progress tracking** during export
+- **Multi-clip export** with concat demuxer
 
 ### ✅ Timeline Editing
 - **Visual timeline** with zoom controls (mouse wheel supported)
@@ -166,14 +169,39 @@ The workflow runs on:
 - Push to `main` or `develop` branches
 - Pull requests to `main`
 
+## Testing
+
+Run the automated test suite:
+
+```powershell
+npm test
+```
+
+Test suite includes:
+- **75 unit tests** - Testing core functionality (timeline, trimming, recording logic)
+- **176 integration tests** - Testing code structure and feature integration
+- **Total: 251 tests** - All passing ✅
+
+Run specific test suites:
+```powershell
+npm run test:unit         # Run unit tests only
+npm run test:integration  # Run integration tests only
+```
+
 ## Architecture
 
-- **main.js** - Electron main process (IPC handlers, FFmpeg integration)
+### Core Files
+- **main.js** - Electron main process (IPC handlers, FFmpeg integration, window management)
 - **preload.js** - Secure IPC bridge between main and renderer
-- **renderer.js** - UI logic (vanilla JavaScript)
-- **index.html** - Application interface
-- **styles.css** - UI styling
+- **renderer.js** - UI logic (vanilla JavaScript, ~1500 lines)
+- **index.html** - Main application interface
+- **recording-overlay.html** - Recording indicator + webcam overlay window
+- **styles.css** - UI styling (~615 lines)
+
+### Supporting Files
 - **validate.js** - Build verification script
+- **tests/unit.test.js** - Unit tests (75 tests)
+- **tests/integration.test.js** - Integration tests (176 tests)
 
 ## Validation Checklist
 
@@ -188,24 +216,13 @@ All items must pass for successful thin-slice validation:
 
 ## Known Limitations
 
-This is a proof-of-concept with intentional scope limitations:
+Current scope limitations:
 
-- No timeline editing
-- No trimming or splitting
-- No drag-and-drop
-- No recording features
-- Export is simple re-encode (no custom settings)
-
-## Next Steps
-
-With the stack validated, the following features can be added:
-
-1. Timeline UI with draggable clips
-2. Trim functionality (in/out points)
-3. Split clips at playhead
-4. Screen/webcam recording
-5. Multi-track timeline
-6. Export resolution options
+- Single video track (no multi-track timeline)
+- No audio-only tracks
+- No video effects or transitions
+- No keyframe animation
+- Windows only (not tested on macOS/Linux)
 
 ## License
 
