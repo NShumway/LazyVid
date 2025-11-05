@@ -8,6 +8,8 @@
     "dist": "electron-builder --mac --config.mac.target=dir",
     "dist:win": "electron-builder --win --config.win.target=dir",
     "dist:mac": "electron-builder --mac --config.mac.target=dir",
+    "release:mac": "electron-builder --mac",
+    "release:win": "electron-builder --win",
     "validate": "node validate.js",
     "test": "node tests/unit.test.js && node tests/integration.test.js",
     "test:unit": "node tests/unit.test.js",
@@ -34,15 +36,37 @@
     "productName": "LazyVid",
     "electronDist": "node_modules/electron/dist",
     "mac": {
-      "target": "dir",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64", "x64"]
+        }
+      ],
       "category": "public.app-category.video",
       "identity": null
     },
     "win": {
-      "target": "dir",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64"]
+        }
+      ],
       "sign": null,
       "signDlls": false,
       "signAndEditExecutable": false
+    },
+    "linux": {
+      "target": ["AppImage", "tar.gz"],
+      "category": "Video"
     },
     "files": [
       "main.js",
