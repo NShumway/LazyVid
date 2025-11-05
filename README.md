@@ -43,37 +43,97 @@ A desktop video editor built with Electron featuring screen recording with webca
 ## Prerequisites
 
 - Node.js 20.x (managed via Volta)
-- Windows 11
+- **Windows 11** or **macOS 10.13+**
 
 ## Installation
 
-```powershell
+```bash
 npm install
+```
+
+**macOS Additional Step:** If you encounter FFmpeg errors on macOS, you may need to manually install the platform-specific FFmpeg binary:
+
+```bash
+npm install @ffmpeg-installer/darwin-arm64  # For Apple Silicon (M1/M2/M3)
+# or
+npm install @ffmpeg-installer/darwin-x64    # For Intel Macs
 ```
 
 ## Development
 
 Run the app in development mode:
 
-```powershell
+```bash
 npm start
 ```
 
 ## Building & Publishing
 
-### Development Build
+### Platform-Specific Builds
 
-Create a distributable Windows application:
+Build for your current platform:
 
-```powershell
-npm run dist
+```bash
+npm run dist        # Builds for macOS (if on Mac) or Windows (if on Windows)
+npm run dist:mac    # Builds specifically for macOS
+npm run dist:win    # Builds specifically for Windows
 ```
 
-The packaged app will be in `dist/win-unpacked/LazyVid.exe`
+### macOS Build
 
-### Building for Distribution
+#### Quick Build:
 
-**Quick Build:**
+```bash
+./build-dist.sh
+```
+
+This automated script handles the complete build process:
+1. Cleans the dist folder
+2. Runs electron-builder
+3. Verifies FFmpeg node_modules were packaged
+4. Runs validation checks
+
+**Output location:** `dist/mac-arm64/LazyVid.app` (on Apple Silicon) or `dist/mac/LazyVid.app` (on Intel)
+
+#### Manual Build Steps (macOS):
+
+```bash
+# 1. Clean dist folder
+rm -rf dist
+
+# 2. Build with electron-builder
+npm run dist:mac
+
+# 3. Validate the build
+npm run validate
+```
+
+#### Build Configuration (macOS)
+
+The app is configured with these settings in `package.json`:
+- `target: "dir"` - Creates unpacked directory (no DMG installer)
+- `identity: null` - No code signing required
+- `category: "public.app-category.video"` - Video editing category
+
+#### Build Output (macOS):
+
+```
+dist/
+└── mac-arm64/           # or mac/ on Intel
+    └── LazyVid.app/
+        └── Contents/
+            ├── MacOS/
+            │   └── LazyVid
+            └── Resources/
+                ├── app.asar
+                └── app.asar.unpacked/
+                    └── node_modules/
+                        └── @ffmpeg-installer/
+```
+
+### Windows Build
+
+#### Quick Build:
 
 ```powershell
 .\build-dist.ps1
@@ -82,10 +142,12 @@ The packaged app will be in `dist/win-unpacked/LazyVid.exe`
 This automated script handles the complete build process:
 1. Cleans the dist folder
 2. Runs electron-builder
-3. Copies node_modules (required for FFmpeg)
+3. Verifies FFmpeg node_modules were packaged
 4. Runs validation checks
 
-#### Prerequisites for Building:
+**Output location:** `dist/win-unpacked/LazyVid.exe`
+
+#### Prerequisites for Building (Windows):
 
 **IMPORTANT:** Due to Windows permission restrictions, the build process may fail if you don't have administrator privileges or Developer Mode enabled.
 
@@ -102,25 +164,20 @@ This automated script handles the complete build process:
    - Navigate to project directory
    - Run `.\build-dist.ps1`
 
-#### Manual Build Steps
-
-If you prefer to build manually:
+#### Manual Build Steps (Windows):
 
 ```powershell
 # 1. Clean dist folder
 Remove-Item -Path "dist" -Recurse -Force
 
 # 2. Build with electron-builder
-npm run dist
+npm run dist:win
 
-# 3. Copy node_modules (required for FFmpeg)
-Copy-Item -Path "node_modules" -Destination "dist\win-unpacked\resources\app\" -Recurse -Force
-
-# 4. Validate the build
+# 3. Validate the build
 npm run validate
 ```
 
-#### Build Configuration
+#### Build Configuration (Windows)
 
 The app is configured with these settings in `package.json`:
 - `target: "dir"` - Creates unpacked directory (no installer)
@@ -128,7 +185,7 @@ The app is configured with these settings in `package.json`:
 - `signDlls: false` - Don't sign DLL files
 - `signAndEditExecutable: false` - Skip executable signing/editing
 
-#### Common Build Issues:
+#### Common Build Issues (Windows):
 
 **Error: "Cannot create symbolic link : A required privilege is not held"**
 - **Solution:** Enable Developer Mode (see above) or run as Administrator
@@ -136,7 +193,7 @@ The app is configured with these settings in `package.json`:
 **Error: "winCodeSign extraction failed"**
 - **Solution:** This is caused by symbolic link permissions. Enable Developer Mode fixes this.
 
-#### Build Output:
+#### Build Output (Windows):
 
 ```
 dist/
@@ -144,7 +201,7 @@ dist/
     ├── LazyVid.exe (169 MB)
     ├── resources/
     │   ├── app.asar (12.5 MB - Your app code + dependencies)
-    │   └── app/
+    │   └── app.asar.unpacked/
     │       └── node_modules/ (FFmpeg binaries and dependencies)
     └── [Electron runtime files...]
 ```
@@ -164,6 +221,17 @@ This checks:
 
 ## Testing the Packaged App
 
+### On macOS:
+1. Navigate to `dist/mac-arm64/` (or `dist/mac/` on Intel)
+2. Double-click `LazyVid.app` to launch
+3. If you get a security warning, go to System Preferences > Security & Privacy and click "Open Anyway"
+4. Click "Import Video" and select any MP4/MOV file
+5. Verify video plays in the preview player
+6. Click "Export Video" and choose a save location
+7. Verify export completes with progress indicator
+8. Verify exported file plays correctly
+
+### On Windows:
 1. Navigate to `dist/win-unpacked/`
 2. Run `LazyVid.exe`
 3. Click "Import Video" and select any MP4/MOV file
@@ -237,7 +305,7 @@ Current scope limitations:
 - No audio-only tracks
 - No video effects or transitions
 - No keyframe animation
-- Windows only (not tested on macOS/Linux)
+- Cross-platform support: Windows and macOS (Linux not tested)
 
 ## License
 

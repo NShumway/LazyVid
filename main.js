@@ -2,6 +2,15 @@ const { app, BrowserWindow, ipcMain, dialog, desktopCapturer } = require('electr
 const path = require('path');
 const fs = require('fs');
 
+// Handle uncaught exceptions in main process
+process.on('uncaughtException', (error) => {
+  console.error('[Main] Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Main] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // FFmpeg will be initialized asynchronously after app starts
 let ffmpeg = null;
 let ffmpegInitPromise = null;

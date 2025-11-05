@@ -10,9 +10,31 @@ const requiredFiles = [
   'package.json'
 ];
 
-const executablePath = path.join(__dirname, 'dist', 'win-unpacked', 'LazyVid.exe');
+// Detect platform and set appropriate executable path
+const platform = process.platform;
+let executablePath;
+let executableName;
 
-console.log('Validating LazyVid build...\n');
+if (platform === 'darwin') {
+  // Try architecture-specific paths first
+  const macArm64Path = path.join(__dirname, 'dist', 'mac-arm64', 'LazyVid.app');
+  const macPath = path.join(__dirname, 'dist', 'mac', 'LazyVid.app');
+
+  if (fs.existsSync(macArm64Path)) {
+    executablePath = macArm64Path;
+  } else {
+    executablePath = macPath;
+  }
+  executableName = 'LazyVid.app';
+} else if (platform === 'win32') {
+  executablePath = path.join(__dirname, 'dist', 'win-unpacked', 'LazyVid.exe');
+  executableName = 'LazyVid.exe';
+} else {
+  executablePath = path.join(__dirname, 'dist', 'linux-unpacked', 'LazyVid');
+  executableName = 'LazyVid';
+}
+
+console.log(`Validating LazyVid build for ${platform}...\n`);
 
 let errors = 0;
 
@@ -29,9 +51,10 @@ requiredFiles.forEach(file => {
 if (fs.existsSync(executablePath)) {
   const stats = fs.statSync(executablePath);
   const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
-  console.log(`✓ LazyVid.exe (${sizeMB} MB)`);
+  console.log(`✓ ${executableName} (${sizeMB} MB)`);
 } else {
-  console.log('✗ LazyVid.exe - NOT BUILT');
+  console.log(`✗ ${executableName} - NOT BUILT`);
+  console.log(`   Expected at: ${executablePath}`);
   errors++;
 }
 
